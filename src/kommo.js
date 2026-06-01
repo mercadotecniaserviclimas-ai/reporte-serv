@@ -207,10 +207,12 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
       const stageKey  = lead.status_id;
       if (!adv.active.byStage[stageKey]) {
         adv.active.byStage[stageKey] = {
-          name:  stageName,
-          count: 0,
-          value: 0,
-          sort:  stage?.sort ?? 999,
+          name:         stageName,
+          pipelineName: stage?.pipelineName || 'Sin embudo',
+          pipelineId:   stage?.pipelineId ?? null,
+          count:        0,
+          value:        0,
+          sort:         stage?.sort ?? 999,
         };
       }
       adv.active.byStage[stageKey].count++;

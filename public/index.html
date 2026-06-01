@@ -482,6 +482,7 @@
     </div>
 
     <div class="summary-strip" id="summary-strip"></div>
+    <div id="pipeline-section" style="margin-bottom:20px;"></div>
     <div class="advisors" id="advisors-list"></div>
   </div>
 </div>
@@ -508,6 +509,18 @@
       ? allAdvisors.filter(a => String(a.advisorId) === selected)
       : allAdvisors;
 
+    // Pipeline breakdown from visible advisors' stage data
+    const pipelineMap = {};
+    visible.forEach(a => {
+      (a.active.byStage || []).forEach(s => {
+        const pid = s.pipelineId != null ? s.pipelineId : 'unknown';
+        if (!pipelineMap[pid]) pipelineMap[pid] = { name: s.pipelineName || 'Sin embudo', count: 0, value: 0 };
+        pipelineMap[pid].count += s.count;
+        pipelineMap[pid].value += s.value;
+      });
+    });
+    const byPipeline = Object.values(pipelineMap).sort((a, b) => b.count - a.count);
+
     const totals = {
       totalLeads:       visible.reduce((s, a) => s + a.active.count + a.won.count + a.lost.count, 0),
       totalActive:      visible.reduce((s, a) => s + a.active.count, 0),
@@ -518,8 +531,12 @@
       totalWonValue:    visible.reduce((s, a) => s + a.won.value, 0),
       totalLostValue:   visible.reduce((s, a) => s + a.lost.value, 0),
       totalAdvisors:    visible.length,
+      tasksNoTask:      visible.reduce((s, a) => s + (a.tasks.noTask   || 0), 0),
+      tasksOverdue:     visible.reduce((s, a) => s + (a.tasks.overdue  || 0), 0),
+      tasksUpToDate:    visible.reduce((s, a) => s + (a.tasks.upToDate || 0), 0),
     };
     renderSummary(totals);
+    renderPipelineSection(byPipeline);
   }
 
   // Se inicializa después de cargar datos
@@ -827,6 +844,44 @@
         </div>
         <div class="section-content">
           <div class="service-pills">${pills}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderPipelineSection(byPipeline) {
+    const sec = $('pipeline-section');
+    if (!byPipeline || !byPipeline.length) { sec.innerHTML = ''; return; }
+
+    const total    = byPipeline.reduce((s, p) => s + p.count, 0);
+    const totalVal = byPipeline.reduce((s, p) => s + p.value, 0);
+    const maxVal   = Math.max(...byPipeline.map(p => p.value), 1);
+
+    const rows = byPipeline.map(p => {
+      const pct = Math.round((p.value / maxVal) * 100);
+      return `<tr>
+        <td class="stage-name" style="padding-left:18px">${p.name}</td>
+        <td class="num count-cell">${fmt(p.count)}</td>
+        <td class="num" style="padding-right:18px">${fmtMXN(p.value)}
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:${pct}px;max-width:100px"></div></div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    sec.innerHTML = `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <div class="section-title c-active" style="padding:12px 18px;margin-bottom:0" onclick="toggleSection(this)">
+          <span class="left">Por embudo <span class="total-badge">${fmt(total)} activos · ${fmtMXN(totalVal)}</span></span>
+          <span class="s-chevron">▾</span>
+        </div>
+        <div class="section-content" style="padding-bottom:8px">
+          <table class="mini-table">
+            <thead><tr>
+              <th style="padding-left:18px">Embudo</th>
+              <th class="num">Leads activos</th>
+              <th class="num" style="padding-right:18px">Valor</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
         </div>
       </div>`;
   }
