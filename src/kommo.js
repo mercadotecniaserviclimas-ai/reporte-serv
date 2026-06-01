@@ -102,6 +102,8 @@ async function fetchRawData() {
   return { usersMap, leads, stageMap };
 }
 
+const STAGNANT_MS = 72 * 60 * 60 * 1000; // 72 horas en ms
+
 // Agrega los datos crudos en el reporte, aplicando filtros de fecha opcionales.
 // dateFrom / dateTo: timestamps en milisegundos (o null)
 // dateField: 'created_at' | 'closed_at'
@@ -148,9 +150,10 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
       byAdvisor[userId] = {
         advisorId: userId,
         advisorName,
-        active: { count: 0, value: 0, byStage: {} },
-        won:    { count: 0, value: 0 },
-        lost:   { count: 0, value: 0, byReason: {} },
+        active:       { count: 0, value: 0, byStage: {} },
+        won:          { count: 0, value: 0 },
+        lost:         { count: 0, value: 0, byReason: {} },
+        stagnant:     [],   // leads activos sin modificación en 72h
         byServiceType: {},
       };
     }
@@ -178,11 +181,12 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
     } else {
       adv.active.count++;
       adv.active.value += value;
-      const stage    = stageMap[lead.status_id];
-      const stageKey = lead.status_id;
+      const stage     = stageMap[lead.status_id];
+      const stageName = stage?.name || `Etapa ${lead.status_id}`;
+      const stageKey  = lead.status_id;
       if (!adv.active.byStage[stageKey]) {
         adv.active.byStage[stageKey] = {
-          name:  stage?.name || `Etapa ${stageKey}`,
+          name:  stageName,
           count: 0,
           value: 0,
           sort:  stage?.sort ?? 999,
@@ -190,6 +194,21 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
       }
       adv.active.byStage[stageKey].count++;
       adv.active.byStage[stageKey].value += value;
+
+      // Lead estancado: activo con más de 72h sin modificación
+      if (lead.updated_at) {
+        const hoursSince = (Date.now() - lead.updated_at * 1000) / (60 * 60 * 1000);
+        if (hoursSince >= 72) {
+          adv.stagnant.push({
+            id:         lead.id,
+            name:       lead.name || `Lead #${lead.id}`,
+            value,
+            updatedAt:  lead.updated_at,
+            hoursSince: Math.floor(hoursSince),
+            stage:      stageName,
+          });
+        }
+      }
     }
   }
 
@@ -205,6 +224,8 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
         .map(([reason, data]) => ({ reason, ...data }))
         .sort((a, b) => b.count - a.count),
     },
+    // Más estancados primero
+    stagnant: adv.stagnant.sort((a, b) => b.hoursSince - a.hoursSince),
     byServiceType: Object.entries(adv.byServiceType)
       .map(([type, data]) => ({ type, ...data }))
       .sort((a, b) => b.count - a.count),
@@ -217,6 +238,7 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
       totalActive:      advisors.reduce((s, a) => s + a.active.count, 0),
       totalWon:         advisors.reduce((s, a) => s + a.won.count, 0),
       totalLost:        advisors.reduce((s, a) => s + a.lost.count, 0),
+      totalStagnant:    advisors.reduce((s, a) => s + a.stagnant.length, 0),
       totalActiveValue: advisors.reduce((s, a) => s + a.active.value, 0),
       totalWonValue:    advisors.reduce((s, a) => s + a.won.value, 0),
       totalLostValue:   advisors.reduce((s, a) => s + a.lost.value, 0),
