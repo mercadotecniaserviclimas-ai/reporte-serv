@@ -129,7 +129,9 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
   }
 
   // Filtro por servicio de interés
-  if (serviceType) {
+  if (serviceType === '__none__') {
+    leads = leads.filter(lead => !getServiceType(lead));
+  } else if (serviceType) {
     leads = leads.filter(lead => getServiceType(lead) === serviceType);
   }
 

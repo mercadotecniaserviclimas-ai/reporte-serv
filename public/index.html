@@ -906,6 +906,7 @@
       advisors.flatMap(a => a.byServiceType.map(s => s.type)).filter(t => t !== 'Sin clasificar')
     )].sort();
     svcSel.innerHTML = '<option value="">Todos</option>' +
+      '<option value="__none__">Sin asignar</option>' +
       types.map(t => `<option value="${t}">${t}</option>`).join('');
     if (prevSvc) svcSel.value = prevSvc;
 
