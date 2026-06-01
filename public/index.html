@@ -383,11 +383,16 @@
   let currentFrom  = null;
   let currentTo    = null;
 
+  // Convierte "YYYY-MM-DD" a ISO usando hora LOCAL (no UTC).
+  // Kommo almacena timestamps como Unix segundos (epoch); los comparamos
+  // en ms en el servidor. Usar hora local evita el desfase de 6h con México.
   function toISO(dateStr, endOfDay = false) {
     if (!dateStr) return null;
-    const d = new Date(dateStr);
-    if (endOfDay) d.setHours(23, 59, 59, 999);
-    return d.toISOString();
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = endOfDay
+      ? new Date(y, m - 1, d, 23, 59, 59, 999)
+      : new Date(y, m - 1, d, 0, 0, 0, 0);
+    return date.toISOString();
   }
 
   function applyPreset(preset) {

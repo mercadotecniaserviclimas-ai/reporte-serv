@@ -112,20 +112,24 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
   let leads = rawData.leads;
 
   if (dateFrom || dateTo) {
+    // Kommo devuelve las fechas como Unix timestamp en segundos.
+    // Multiplicamos × 1000 para comparar en milisegundos.
     const filterByClosed = dateField === 'closed_at';
     leads = leads.filter(lead => {
       const isWon  = lead.status_id === 142;
       const isLost = lead.status_id === 143;
 
       if (filterByClosed) {
-        // Solo incluir cerrados; activos no tienen fecha de cierre
+        // Solo leads cerrados tienen fecha de cierre
         if (!isWon && !isLost) return false;
-        const ts = (lead.closed_at || lead.updated_at) * 1000;
+        const raw = lead.closed_at || lead.updated_at;
+        if (!raw) return false;
+        const ts = raw * 1000;
         if (dateFrom && ts < dateFrom) return false;
         if (dateTo  && ts > dateTo)   return false;
         return true;
       } else {
-        // Filtrar todos los leads por fecha de creación
+        if (!lead.created_at) return false;
         const ts = lead.created_at * 1000;
         if (dateFrom && ts < dateFrom) return false;
         if (dateTo  && ts > dateTo)   return false;

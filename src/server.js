@@ -19,6 +19,8 @@ app.use(express.json());
 app.get('/api/report', (req, res) => {
   const { dateFrom, dateTo, dateField } = req.query;
 
+  // Los timestamps de Kommo son Unix segundos; dateFrom/dateTo llegan
+  // como ISO strings ya en hora local (construidos con new Date(y,m,d,...)).
   const filters = {
     dateFrom:  dateFrom ? new Date(dateFrom).getTime() : null,
     dateTo:    dateTo   ? new Date(dateTo).getTime()   : null,
