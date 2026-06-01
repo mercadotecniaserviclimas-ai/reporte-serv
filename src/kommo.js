@@ -12,8 +12,10 @@ const api = axios.create({
   },
 });
 
-// Rate limiter: máximo 6 req/s (margen seguro bajo el límite de 7 de Kommo)
-const MIN_INTERVAL_MS = Math.ceil(1000 / 6);
+// Rate limiter: máximo 3 req/s — la mitad del límite de Kommo (7 req/s).
+// Más lento que antes (era 6 req/s) pero evita picos de CPU en servidores
+// con recursos limitados: cada request tiene ~330ms de margen de reposo.
+const MIN_INTERVAL_MS = Math.ceil(1000 / 3);
 let apiQueue = Promise.resolve();
 let lastRequestTime = 0;
 
@@ -87,24 +89,18 @@ function getServiceType(lead) {
   return field?.values?.[0]?.value || null;
 }
 
-// Descarga todos los datos crudos de Kommo (se llama cada hora)
-// HISTORY_MONTHS limita leads ganados/perdidos para reducir llamadas a la API.
-// Leads activos siempre se traen completos (son finitos por definición).
+// Descarga todos los datos crudos de Kommo.
+// Las solicitudes van en serie a través del rate limiter (3 req/s),
+// así el CPU tiene ~330ms de reposo entre cada respuesta.
 async function fetchRawData() {
   if (!ACCESS_TOKEN) {
     throw new Error('KOMMO_TOKEN no configurado. Por favor agrega tu token en las variables de entorno.');
   }
 
-  const historyMonths = parseInt(process.env.HISTORY_MONTHS || '12', 10);
-  const since = new Date();
-  since.setMonth(since.getMonth() - historyMonths);
-  const sinceTs = Math.floor(since.getTime() / 1000);
-
-  const [usersMap, leads, stageMap] = await Promise.all([
-    fetchUsers(),
-    fetchAll('/leads', { with: 'loss_reason', 'filter[created_at][from]': sinceTs }),
-    fetchPipelines(),
-  ]);
+  // Secuencial para no encolar varias cadenas en paralelo al arrancar
+  const usersMap = await fetchUsers();
+  const leads    = await fetchAll('/leads', { with: 'loss_reason' });
+  const stageMap = await fetchPipelines();
 
   return { usersMap, leads, stageMap };
 }
