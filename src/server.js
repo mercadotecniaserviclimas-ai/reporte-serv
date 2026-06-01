@@ -57,11 +57,17 @@ async function runReport() {
   }
 }
 
-// Cron: cada hora en punto
-cron.schedule('0 * * * *', () => { runReport(); });
+// Cron: cada 2 horas (0:00, 2:00, 4:00 ...)
+cron.schedule('0 */2 * * *', () => { runReport(); });
 
-runReport();
+// Arranque diferido: espera 60 segundos antes de la primera carga
+// para no saturar el CPU al iniciar el contenedor junto con otros servicios.
+// Cambiar FETCH_DELAY_SEC=0 en env vars para deshabilitar el delay.
+const delayMs = parseInt(process.env.FETCH_DELAY_SEC || '60', 10) * 1000;
+setTimeout(() => { runReport(); }, delayMs);
+console.log(`[${new Date().toISOString()}] Primera carga programada en ${delayMs / 1000}s`);
 
+// Arrancar servidor inmediatamente (el API responde isLoading=false, data=null hasta que cargue)
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });

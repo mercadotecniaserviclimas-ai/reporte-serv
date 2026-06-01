@@ -88,14 +88,21 @@ function getServiceType(lead) {
 }
 
 // Descarga todos los datos crudos de Kommo (se llama cada hora)
+// HISTORY_MONTHS limita leads ganados/perdidos para reducir llamadas a la API.
+// Leads activos siempre se traen completos (son finitos por definición).
 async function fetchRawData() {
   if (!ACCESS_TOKEN) {
     throw new Error('KOMMO_TOKEN no configurado. Por favor agrega tu token en las variables de entorno.');
   }
 
+  const historyMonths = parseInt(process.env.HISTORY_MONTHS || '12', 10);
+  const since = new Date();
+  since.setMonth(since.getMonth() - historyMonths);
+  const sinceTs = Math.floor(since.getTime() / 1000);
+
   const [usersMap, leads, stageMap] = await Promise.all([
     fetchUsers(),
-    fetchAll('/leads', { with: 'loss_reason' }),
+    fetchAll('/leads', { with: 'loss_reason', 'filter[created_at][from]': sinceTs }),
     fetchPipelines(),
   ]);
 
