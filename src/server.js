@@ -18,14 +18,13 @@ app.use(express.json());
 // Endpoint: obtener reporte con filtros opcionales de fecha
 // Query params: dateFrom, dateTo (ISO strings), dateField ('created_at' | 'closed_at')
 app.get('/api/report', (req, res) => {
-  const { dateFrom, dateTo, dateField } = req.query;
+  const { dateFrom, dateTo, dateField, serviceType } = req.query;
 
-  // Los timestamps de Kommo son Unix segundos; dateFrom/dateTo llegan
-  // como ISO strings ya en hora local (construidos con new Date(y,m,d,...)).
   const filters = {
-    dateFrom:  dateFrom ? new Date(dateFrom).getTime() : null,
-    dateTo:    dateTo   ? new Date(dateTo).getTime()   : null,
-    dateField: dateField || 'created_at',
+    dateFrom:    dateFrom    ? new Date(dateFrom).getTime() : null,
+    dateTo:      dateTo      ? new Date(dateTo).getTime()   : null,
+    dateField:   dateField   || 'created_at',
+    serviceType: serviceType || null,
   };
 
   const data = rawData ? buildReport(rawData, filters) : null;

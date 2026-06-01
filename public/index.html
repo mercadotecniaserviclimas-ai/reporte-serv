@@ -295,12 +295,37 @@
     /* Separator */
     .sep { border: none; border-top: 1px solid var(--border); margin-top: 20px; }
 
-    #loading, #error-msg {
+    #loading {
+      padding: 60px 24px 40px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+    }
+    .loading-bar {
+      width: 220px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 18px auto 0;
+    }
+    .loading-bar-fill {
+      height: 100%;
+      width: 40%;
+      background: var(--text);
+      border-radius: 2px;
+      animation: bar-slide 1.4s ease-in-out infinite;
+    }
+    @keyframes bar-slide {
+      0%   { transform: translateX(-200%); }
+      100% { transform: translateX(400%); }
+    }
+    #error-msg {
       text-align: center;
       padding: 60px 24px;
-      color: var(--muted);
+      color: var(--danger);
     }
-    #error-msg { color: var(--danger); }
 
     /* Filter bar */
     .filter-bar {
@@ -389,7 +414,7 @@
 <body>
 
 <header>
-  <div class="logo">Serviclimas <span>/</span> Reporte Asesores</div>
+  <div class="logo">Niutec <span>/</span> Reporte Asesores</div>
   <div class="header-right">
     <span id="status-badge">Cargando...</span>
     <button id="btn-refresh">⟳ Actualizar</button>
@@ -397,7 +422,10 @@
 </header>
 
 <div class="container">
-  <div id="loading">Obteniendo datos de Kommo, un momento...</div>
+  <div id="loading">
+    Obteniendo datos de Kommo...
+    <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+  </div>
   <div id="error-msg" style="display:none;"></div>
   <div id="content" style="display:none;">
 
@@ -406,6 +434,15 @@
       <div class="filter-group">
         <label>Asesor</label>
         <select id="advisor-select" class="filter-select">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+      <div class="filter-divider"></div>
+
+      <div class="filter-group">
+        <label>Servicio</label>
+        <select id="service-select" class="filter-select" style="min-width:140px">
           <option value="">Todos</option>
         </select>
       </div>
@@ -491,9 +528,11 @@
   });
 
   // ── Filtro de fechas ──────────────────────────────────────────────────────
-  let currentField = 'created_at';
-  let currentFrom  = null;
-  let currentTo    = null;
+  let currentField       = 'created_at';
+  let currentFrom        = null;
+  let currentTo          = null;
+  let currentServiceType = '';
+  window.kommoSubdomain  = '';
 
   // Convierte "YYYY-MM-DD" a ISO usando hora LOCAL (no UTC).
   // Kommo almacena timestamps como Unix segundos (epoch); los comparamos
@@ -576,10 +615,16 @@
     renderWithFilters();
   });
 
+  $('service-select').addEventListener('change', () => {
+    currentServiceType = $('service-select').value;
+    renderWithFilters();
+  });
+
   async function renderWithFilters() {
     const params = new URLSearchParams({ dateField: currentField });
-    if (currentFrom) params.set('dateFrom', toISO(currentFrom));
-    if (currentTo)   params.set('dateTo',   toISO(currentTo, true));
+    if (currentFrom)        params.set('dateFrom',    toISO(currentFrom));
+    if (currentTo)          params.set('dateTo',      toISO(currentTo, true));
+    if (currentServiceType) params.set('serviceType', currentServiceType);
 
     try {
       const res  = await fetch('/api/report?' + params.toString());
@@ -722,9 +767,9 @@
       <div>
         <div class="section-title c-stagnant" onclick="toggleSection(this)">
           <span class="left">Estancados +72h <span class="total-badge">${fmt(stagnant.length)} leads</span></span>
-          <span class="s-chevron">▾</span>
+          <span class="s-chevron closed">▾</span>
         </div>
-        <div class="section-content">
+        <div class="section-content hidden">
           <table class="stagnant-table">
             <thead><tr><th>Lead</th><th>Sin movimiento</th><th style="text-align:right">Valor</th></tr></thead>
             <tbody>${rows}</tbody>
@@ -758,13 +803,23 @@
     list.innerHTML = '';
     allAdvisors = advisors;
 
-    // Poblar el select de asesor
+    // Poblar select de asesor
     const sel = $('advisor-select');
-    const prev = sel.value;
+    const prevAdv = sel.value;
     sel.innerHTML = '<option value="">Todos los asesores</option>' +
       advisors.map(a => `<option value="${a.advisorId}">${a.advisorName}</option>`).join('');
-    if (prev) sel.value = prev; // mantener selección previa
+    if (prevAdv) sel.value = prevAdv;
     document.dispatchEvent(new Event('advisor-select-ready'));
+
+    // Poblar select de servicio con tipos únicos encontrados en los datos
+    const svcSel  = $('service-select');
+    const prevSvc = svcSel.value;
+    const types   = [...new Set(
+      advisors.flatMap(a => a.byServiceType.map(s => s.type)).filter(t => t !== 'Sin clasificar')
+    )].sort();
+    svcSel.innerHTML = '<option value="">Todos</option>' +
+      types.map(t => `<option value="${t}">${t}</option>`).join('');
+    if (prevSvc) svcSel.value = prevSvc;
 
     if (!advisors.length) {
       list.innerHTML = '<div style="color:var(--muted);padding:20px 0;">No se encontraron asesores.</div>';

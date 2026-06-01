@@ -107,14 +107,17 @@ async function fetchRawData() {
 
 const STAGNANT_MS = 72 * 60 * 60 * 1000; // 72 horas en ms
 
-// Agrega los datos crudos en el reporte, aplicando filtros de fecha opcionales.
 // dateFrom / dateTo: timestamps en milisegundos (o null)
 // dateField: 'created_at' | 'closed_at'
-//   - created_at → filtra todos los leads por fecha de creación
-//   - closed_at  → filtra solo leads ganados/perdidos por fecha de cierre
-function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'created_at' } = {}) {
+// serviceType: string exacto del campo "Servicio de interés" (o null = todos)
+function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'created_at', serviceType = null } = {}) {
   const { usersMap, stageMap } = rawData;
   let leads = rawData.leads;
+
+  // Filtro por servicio de interés
+  if (serviceType) {
+    leads = leads.filter(lead => getServiceType(lead) === serviceType);
+  }
 
   if (dateFrom || dateTo) {
     // Kommo devuelve las fechas como Unix timestamp en segundos.
