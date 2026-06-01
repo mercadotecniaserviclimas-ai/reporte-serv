@@ -4,29 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reporte de Asesores · Serviclimas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #22263a;
-      --border: #2e3350;
-      --accent: #4f8ef7;
-      --accent2: #7c5cfc;
-      --danger: #f74f6a;
-      --warning: #f7a84f;
-      --success: #4fcf8e;
-      --muted: #8891b2;
-      --text: #e8eaf6;
-      --radius: 12px;
+      --bg:       #0e0e0e;
+      --surface:  #161616;
+      --surface2: #1f1f1f;
+      --border:   #2c2c2c;
+      --accent:   #e8e8e8;
+      --accent2:  #aaaaaa;
+      --danger:   #e8504a;
+      --warning:  #e8a23a;
+      --success:  #3ec97a;
+      --muted:    #777777;
+      --text:     #f0f0f0;
+      --radius:   10px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Inter', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
 
     header {
@@ -41,24 +45,35 @@
       z-index: 100;
     }
 
-    .logo { font-size: 1.1rem; font-weight: 700; }
-    .logo span { color: var(--accent); }
+    .logo {
+      font-family: 'Barlow Condensed', 'Inter', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .logo span { color: var(--muted); font-weight: 700; }
 
     .header-right { display: flex; align-items: center; gap: 14px; }
 
-    #status-badge { font-size: 0.78rem; color: var(--muted); }
+    #status-badge { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.02em; }
 
     #btn-refresh {
-      background: var(--accent);
-      color: #fff;
-      border: none;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
       padding: 7px 16px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.83rem;
+      font-size: 0.8rem;
       font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.02em;
+      transition: border-color .15s, color .15s;
     }
-    #btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+    #btn-refresh:hover { border-color: var(--accent2); color: var(--text); }
+    #btn-refresh:disabled { opacity: 0.35; cursor: not-allowed; }
 
     .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
 
@@ -85,11 +100,11 @@
     }
     .stat-card .value { font-size: 1.7rem; font-weight: 700; line-height: 1; }
     .stat-card .sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
-    .stat-card.c-accent .value   { color: var(--accent); }
+    .stat-card.c-accent .value   { color: #ffffff; }
     .stat-card.c-success .value  { color: var(--success); }
     .stat-card.c-danger .value   { color: var(--danger); }
     .stat-card.c-warning .value  { color: var(--warning); }
-    .stat-card.c-stagnant .value { color: #c084fc; }
+    .stat-card.c-stagnant .value { color: #a78bfa; }
 
     /* Advisor cards */
     .advisors { display: flex; flex-direction: column; gap: 20px; }
@@ -118,10 +133,13 @@
     .avatar {
       width: 38px; height: 38px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      background: var(--surface2);
+      border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.85rem; font-weight: 700;
+      font-size: 0.82rem; font-weight: 700;
+      color: var(--accent2);
       flex-shrink: 0;
+      letter-spacing: 0.02em;
     }
 
     .advisor-name { font-weight: 700; font-size: 1rem; }
@@ -132,10 +150,10 @@
       font-size: 0.73rem; font-weight: 600;
       padding: 3px 10px; border-radius: 20px;
     }
-    .chip.active   { background: rgba(79,142,247,.15);  color: var(--accent); }
-    .chip.won      { background: rgba(79,207,142,.15);  color: var(--success); }
-    .chip.lost     { background: rgba(247,79,106,.15);  color: var(--danger); }
-    .chip.stagnant { background: rgba(192,132,252,.15); color: #c084fc; }
+    .chip.active   { background: rgba(240,240,240,.08); color: var(--text); }
+    .chip.won      { background: rgba(62,201,122,.12);  color: var(--success); }
+    .chip.lost     { background: rgba(232,80,74,.12);   color: var(--danger); }
+    .chip.stagnant { background: rgba(167,139,250,.12); color: #a78bfa; }
 
     .chevron { color: var(--muted); font-size: 1rem; transition: transform .2s; flex-shrink: 0; }
     .chevron.open { transform: rotate(180deg); }
@@ -165,17 +183,17 @@
       letter-spacing: 0;
     }
 
-    .section-title.c-active   { color: var(--accent); }
+    .section-title.c-active   { color: #d4d4d4; }
     .section-title.c-won      { color: var(--success); }
     .section-title.c-lost     { color: var(--danger); }
     .section-title.c-service  { color: var(--warning); }
-    .section-title.c-stagnant { color: #c084fc; }
+    .section-title.c-stagnant { color: #a78bfa; }
 
-    .section-title.c-active   .total-badge { background: rgba(79,142,247,.15);  color: var(--accent); }
-    .section-title.c-won      .total-badge { background: rgba(79,207,142,.15);  color: var(--success); }
-    .section-title.c-lost     .total-badge { background: rgba(247,79,106,.15);  color: var(--danger); }
-    .section-title.c-service  .total-badge { background: rgba(247,168,79,.15);  color: var(--warning); }
-    .section-title.c-stagnant .total-badge { background: rgba(192,132,252,.15); color: #c084fc; }
+    .section-title.c-active   .total-badge { background: rgba(240,240,240,.08); color: #d4d4d4; }
+    .section-title.c-won      .total-badge { background: rgba(62,201,122,.12);  color: var(--success); }
+    .section-title.c-lost     .total-badge { background: rgba(232,80,74,.12);   color: var(--danger); }
+    .section-title.c-service  .total-badge { background: rgba(232,162,58,.12);  color: var(--warning); }
+    .section-title.c-stagnant .total-badge { background: rgba(167,139,250,.12); color: #a78bfa; }
 
     /* Tabla estancados */
     .stagnant-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
@@ -195,7 +213,7 @@
     .days-badge {
       font-size: 0.72rem; font-weight: 700;
       padding: 2px 7px; border-radius: 6px;
-      background: rgba(192,132,252,.15); color: #c084fc;
+      background: rgba(167,139,250,.12); color: #a78bfa;
       white-space: nowrap;
     }
 
@@ -223,9 +241,9 @@
       margin-top: 4px;
     }
     .stage-bar-fill {
-      height: 4px;
+      height: 3px;
       border-radius: 2px;
-      background: var(--accent);
+      background: var(--accent2);
       min-width: 3px;
     }
 
@@ -307,13 +325,14 @@
       padding: 6px 13px;
       font-size: 0.78rem;
       font-weight: 600;
+      font-family: 'Inter', sans-serif;
       background: none;
       border: none;
       color: var(--muted);
       cursor: pointer;
       transition: background .15s, color .15s;
     }
-    .seg-btn.active { background: var(--accent); color: #fff; }
+    .seg-btn.active { background: var(--text); color: #0e0e0e; }
 
     .quick-filters { display: flex; gap: 6px; flex-wrap: wrap; }
     .qf-btn {
@@ -327,7 +346,7 @@
       cursor: pointer;
       transition: border-color .15s, color .15s;
     }
-    .qf-btn:hover, .qf-btn.active { border-color: var(--accent); color: var(--accent); }
+    .qf-btn:hover, .qf-btn.active { border-color: var(--text); color: var(--text); }
 
     .filter-divider {
       width: 1px; height: 22px;
@@ -348,7 +367,7 @@
 <body>
 
 <header>
-  <div class="logo">Serviclimas <span>·</span> Reporte Asesores</div>
+  <div class="logo">Serviclimas <span>/</span> Reporte Asesores</div>
   <div class="header-right">
     <span id="status-badge">Cargando...</span>
     <button id="btn-refresh">⟳ Actualizar</button>
