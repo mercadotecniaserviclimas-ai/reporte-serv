@@ -73,6 +73,10 @@ async function fetchPipelines() {
   return stageMap;
 }
 
+async function fetchTasks() {
+  return fetchAll('/tasks', { 'filter[is_completed]': 0, 'filter[entity_type]': 'leads' });
+}
+
 function getLossReasonName(lead) {
   const lr = lead._embedded?.loss_reason;
   if (!lr) return 'Sin razón especificada';
@@ -101,8 +105,9 @@ async function fetchRawData() {
   const usersMap = await fetchUsers();
   const leads    = await fetchAll('/leads', { with: 'loss_reason' });
   const stageMap = await fetchPipelines();
+  const tasks    = await fetchTasks();
 
-  return { usersMap, leads, stageMap };
+  return { usersMap, leads, stageMap, tasks };
 }
 
 const STAGNANT_MS = 72 * 60 * 60 * 1000; // 72 horas en ms
@@ -113,6 +118,16 @@ const STAGNANT_MS = 72 * 60 * 60 * 1000; // 72 horas en ms
 function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'created_at', serviceType = null } = {}) {
   const { usersMap, stageMap } = rawData;
   let leads = rawData.leads;
+
+  // Índice de tareas pendientes por lead_id
+  const nowMs = Date.now();
+  const tasksByLead = {};
+  for (const task of (rawData.tasks || [])) {
+    if (task.entity_type !== 'leads') continue;
+    const lid = task.entity_id;
+    if (!tasksByLead[lid]) tasksByLead[lid] = [];
+    tasksByLead[lid].push(task);
+  }
 
   // Filtro por servicio de interés
   if (serviceType) {
@@ -156,10 +171,11 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
       byAdvisor[userId] = {
         advisorId: userId,
         advisorName,
-        active:       { count: 0, value: 0, byStage: {} },
-        won:          { count: 0, value: 0 },
-        lost:         { count: 0, value: 0, byReason: {} },
-        stagnant:     [],   // leads activos sin modificación en 72h
+        active:        { count: 0, value: 0, byStage: {} },
+        won:           { count: 0, value: 0 },
+        lost:          { count: 0, value: 0, byReason: {} },
+        stagnant:      [],
+        tasks:         { noTask: 0, overdue: 0, upToDate: 0 },
         byServiceType: {},
       };
     }
@@ -203,7 +219,7 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
 
       // Lead estancado: activo con más de 72h sin modificación
       if (lead.updated_at) {
-        const hoursSince = (Date.now() - lead.updated_at * 1000) / (60 * 60 * 1000);
+        const hoursSince = (nowMs - lead.updated_at * 1000) / (60 * 60 * 1000);
         if (hoursSince >= 72) {
           adv.stagnant.push({
             id:         lead.id,
@@ -215,6 +231,15 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
           });
         }
       }
+
+      // Tareas del lead
+      const leadTasks   = tasksByLead[lead.id] || [];
+      const hasUpcoming = leadTasks.some(t => !t.complete_till || t.complete_till * 1000 >= nowMs);
+      const allOverdue  = leadTasks.length > 0 && leadTasks.every(t => t.complete_till && t.complete_till * 1000 < nowMs);
+
+      if (leadTasks.length === 0) adv.tasks.noTask++;
+      else if (allOverdue)        adv.tasks.overdue++;
+      else if (hasUpcoming)       adv.tasks.upToDate++;
     }
   }
 
@@ -248,6 +273,9 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
       totalActiveValue: advisors.reduce((s, a) => s + a.active.value, 0),
       totalWonValue:    advisors.reduce((s, a) => s + a.won.value, 0),
       totalLostValue:   advisors.reduce((s, a) => s + a.lost.value, 0),
+      tasksNoTask:      advisors.reduce((s, a) => s + a.tasks.noTask, 0),
+      tasksOverdue:     advisors.reduce((s, a) => s + a.tasks.overdue, 0),
+      tasksUpToDate:    advisors.reduce((s, a) => s + a.tasks.upToDate, 0),
     },
   };
 }

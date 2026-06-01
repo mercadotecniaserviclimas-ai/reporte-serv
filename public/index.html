@@ -664,10 +664,20 @@
         <div class="value">${fmt(totals.totalStagnant || 0)}</div>
         <div class="sub">leads sin movimiento</div>
       </div>
+      <div class="stat-card c-danger">
+        <div class="label">Sin tarea</div>
+        <div class="value">${fmt(totals.tasksNoTask || 0)}</div>
+        <div class="sub">leads activos</div>
+      </div>
       <div class="stat-card c-warning">
-        <div class="label">Total leads</div>
-        <div class="value">${fmt(totals.totalLeads)}</div>
-        <div class="sub">${totals.totalAdvisors || ''} asesores</div>
+        <div class="label">Tareas vencidas</div>
+        <div class="value">${fmt(totals.tasksOverdue || 0)}</div>
+        <div class="sub">leads activos</div>
+      </div>
+      <div class="stat-card c-success">
+        <div class="label">Tareas al día</div>
+        <div class="value">${fmt(totals.tasksUpToDate || 0)}</div>
+        <div class="sub">leads activos</div>
       </div>
     `;
   }
@@ -778,6 +788,29 @@
       </div>`;
   }
 
+  function renderTasks(tasks) {
+    const total = tasks.noTask + tasks.overdue + tasks.upToDate;
+    if (!total) return '';
+    const rows = [
+      tasks.upToDate ? `<tr><td>✓ Al día</td><td class="num">${fmt(tasks.upToDate)}</td></tr>` : '',
+      tasks.overdue  ? `<tr><td style="color:var(--danger)">⚠ Vencidas</td><td class="num" style="color:var(--danger)">${fmt(tasks.overdue)}</td></tr>` : '',
+      tasks.noTask   ? `<tr><td style="color:var(--warning)">— Sin tarea</td><td class="num" style="color:var(--warning)">${fmt(tasks.noTask)}</td></tr>` : '',
+    ].join('');
+    return `
+      <div>
+        <div class="section-title" style="color:#d4d4d4" onclick="toggleSection(this)">
+          <span class="left">Tareas <span class="total-badge" style="background:rgba(240,240,240,.08);color:#d4d4d4">${fmt(total)} leads activos</span></span>
+          <span class="s-chevron">▾</span>
+        </div>
+        <div class="section-content">
+          <table class="mini-table">
+            <thead><tr><th>Estado</th><th class="num">Leads</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
   function renderServiceType(byServiceType) {
     const relevant = byServiceType.filter(s => s.type !== 'Sin clasificar');
     if (!relevant.length) return '';
@@ -832,14 +865,17 @@
       el.dataset.advisorId = String(adv.advisorId);
 
       const chips = [
-        adv.active.count   ? `<span class="chip active">▶ ${fmt(adv.active.count)} activos</span>` : '',
-        adv.won.count      ? `<span class="chip won">✓ ${fmt(adv.won.count)} ganados</span>` : '',
-        adv.lost.count     ? `<span class="chip lost">✕ ${fmt(adv.lost.count)} perdidos</span>` : '',
+        adv.active.count    ? `<span class="chip active">▶ ${fmt(adv.active.count)} activos</span>` : '',
+        adv.won.count       ? `<span class="chip won">✓ ${fmt(adv.won.count)} ganados</span>` : '',
+        adv.lost.count      ? `<span class="chip lost">✕ ${fmt(adv.lost.count)} perdidos</span>` : '',
+        adv.tasks.overdue   ? `<span class="chip lost">⚠ ${fmt(adv.tasks.overdue)} t.vencidas</span>` : '',
+        adv.tasks.noTask    ? `<span class="chip" style="background:rgba(247,168,79,.12);color:var(--warning)">— ${fmt(adv.tasks.noTask)} sin tarea</span>` : '',
         adv.stagnant.length ? `<span class="chip stagnant">⏱ ${fmt(adv.stagnant.length)} estancados</span>` : '',
       ].filter(Boolean).join('');
 
       const body = [
         renderActiveStages(adv.active),
+        renderTasks(adv.tasks),
         renderStagnant(adv.stagnant),
         renderWon(adv.won),
         renderLost(adv.lost),
