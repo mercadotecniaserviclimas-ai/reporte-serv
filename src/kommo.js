@@ -123,7 +123,6 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
   const nowMs = Date.now();
   const tasksByLead = {};
   for (const task of (rawData.tasks || [])) {
-    if (task.entity_type !== 'leads') continue;
     const lid = task.entity_id;
     if (!tasksByLead[lid]) tasksByLead[lid] = [];
     tasksByLead[lid].push(task);
@@ -185,10 +184,10 @@ function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'cre
     const isWon  = lead.status_id === 142;
     const isLost = lead.status_id === 143;
 
-    const serviceType = getServiceType(lead) || 'Sin clasificar';
-    if (!adv.byServiceType[serviceType]) adv.byServiceType[serviceType] = { count: 0, value: 0 };
-    adv.byServiceType[serviceType].count++;
-    adv.byServiceType[serviceType].value += value;
+    const svcType = getServiceType(lead) || 'Sin clasificar';
+    if (!adv.byServiceType[svcType]) adv.byServiceType[svcType] = { count: 0, value: 0 };
+    adv.byServiceType[svcType].count++;
+    adv.byServiceType[svcType].value += value;
 
     if (isWon) {
       adv.won.count++;
