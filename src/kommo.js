@@ -12,12 +12,30 @@ const api = axios.create({
   },
 });
 
+// Rate limiter: máximo 6 req/s (margen seguro bajo el límite de 7 de Kommo)
+const MIN_INTERVAL_MS = Math.ceil(1000 / 6); // ~167ms entre solicitudes
+let apiQueue = Promise.resolve();
+let lastRequestTime = 0;
+
+function rateLimitedGet(endpoint, config) {
+  const result = apiQueue.then(async () => {
+    const elapsed = Date.now() - lastRequestTime;
+    if (elapsed < MIN_INTERVAL_MS) {
+      await new Promise(r => setTimeout(r, MIN_INTERVAL_MS - elapsed));
+    }
+    lastRequestTime = Date.now();
+    return api.get(endpoint, config);
+  });
+  apiQueue = result.catch(() => {});
+  return result;
+}
+
 // Paginación genérica
 async function fetchAll(endpoint, params = {}) {
   let page = 1;
   const results = [];
   while (true) {
-    const res = await api.get(endpoint, { params: { ...params, limit: 250, page } });
+    const res = await rateLimitedGet(endpoint, { params: { ...params, limit: 250, page } });
     if (res.status === 204) break;
     const embedded = res.data?._embedded;
     const key = Object.keys(embedded || {})[0];
@@ -31,7 +49,7 @@ async function fetchAll(endpoint, params = {}) {
 
 // Obtener usuarios (asesores)
 async function fetchUsers() {
-  const res = await api.get('/users');
+  const res = await rateLimitedGet('/users');
   const users = res.data?._embedded?.users || [];
   const map = {};
   for (const u of users) {
@@ -53,14 +71,9 @@ async function fetchActiveLeads() {
   return leads.filter(l => l.status_id !== 142 && l.status_id !== 143);
 }
 
-// Obtener tareas de leads activos
+// Obtener tareas pendientes de leads
 async function fetchTasks() {
-  // Traer tareas no completadas asociadas a leads
-  const [pending, overdue] = await Promise.all([
-    fetchAll('/tasks', { 'filter[is_completed]': 0, 'filter[entity_type]': 'leads' }),
-    fetchAll('/tasks', { 'filter[is_completed]': 0, 'filter[entity_type]': 'leads' }),
-  ]);
-  return pending;
+  return fetchAll('/tasks', { 'filter[is_completed]': 0, 'filter[entity_type]': 'leads' });
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
