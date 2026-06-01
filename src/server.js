@@ -3,8 +3,9 @@ const cron    = require('node-cron');
 const path    = require('path');
 const { fetchRawData, buildReport } = require('./kommo');
 
-const app  = express();
-const PORT = process.env.PORT || 3000;
+const app             = express();
+const PORT            = process.env.PORT || 3000;
+const KOMMO_SUBDOMAIN = process.env.KOMMO_SUBDOMAIN || 'ventasserviclimascom';
 
 let rawData    = null; // datos crudos cacheados
 let lastUpdated = null;
@@ -29,7 +30,7 @@ app.get('/api/report', (req, res) => {
 
   const data = rawData ? buildReport(rawData, filters) : null;
 
-  res.json({ data, lastUpdated, isLoading, error: lastError });
+  res.json({ data, lastUpdated, isLoading, error: lastError, subdomain: KOMMO_SUBDOMAIN });
 });
 
 // Endpoint: forzar refresh manual
