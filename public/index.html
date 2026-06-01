@@ -79,10 +79,15 @@
 
     /* Summary strip */
     .summary-strip {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .summary-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 12px;
-      margin-bottom: 28px;
     }
 
     .stat-card {
@@ -669,45 +674,49 @@
       : 'var(--danger)';
 
     $('summary-strip').innerHTML = `
-      <div class="stat-card c-accent">
-        <div class="label">En pipeline</div>
-        <div class="value">${fmt(totals.totalActive)}</div>
-        <div class="sub">${fmtMXN(totals.totalActiveValue)}</div>
+      <div class="summary-row">
+        <div class="stat-card c-accent">
+          <div class="label">En pipeline</div>
+          <div class="value">${fmt(totals.totalActive)}</div>
+          <div class="sub">${fmtMXN(totals.totalActiveValue)}</div>
+        </div>
+        <div class="stat-card c-stagnant">
+          <div class="label">Estancados +72h</div>
+          <div class="value">${fmt(totals.totalStagnant || 0)}</div>
+          <div class="sub">leads sin movimiento</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Eficacia</div>
+          <div class="value" style="color:${eficaciaColor}">${eficacia !== null ? eficacia + '%' : '—'}</div>
+          <div class="sub">1 − (estancados / pipeline)</div>
+        </div>
+        <div class="stat-card c-success">
+          <div class="label">Ganados</div>
+          <div class="value">${fmt(totals.totalWon)}</div>
+          <div class="sub">${fmtMXN(totals.totalWonValue)}</div>
+        </div>
+        <div class="stat-card c-danger">
+          <div class="label">Perdidos</div>
+          <div class="value">${fmt(totals.totalLost)}</div>
+          <div class="sub">${fmtMXN(totals.totalLostValue)}</div>
+        </div>
       </div>
-      <div class="stat-card c-stagnant">
-        <div class="label">Estancados +72h</div>
-        <div class="value">${fmt(totals.totalStagnant || 0)}</div>
-        <div class="sub">leads sin movimiento</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">Eficacia</div>
-        <div class="value" style="color:${eficaciaColor}">${eficacia !== null ? eficacia + '%' : '—'}</div>
-        <div class="sub">1 − (estancados / pipeline)</div>
-      </div>
-      <div class="stat-card c-success">
-        <div class="label">Ganados</div>
-        <div class="value">${fmt(totals.totalWon)}</div>
-        <div class="sub">${fmtMXN(totals.totalWonValue)}</div>
-      </div>
-      <div class="stat-card c-danger">
-        <div class="label">Perdidos</div>
-        <div class="value">${fmt(totals.totalLost)}</div>
-        <div class="sub">${fmtMXN(totals.totalLostValue)}</div>
-      </div>
-      <div class="stat-card c-success">
-        <div class="label">Tareas al día</div>
-        <div class="value">${fmt(totals.tasksUpToDate || 0)}</div>
-        <div class="sub">leads activos</div>
-      </div>
-      <div class="stat-card c-warning">
-        <div class="label">Tareas vencidas</div>
-        <div class="value">${fmt(totals.tasksOverdue || 0)}</div>
-        <div class="sub">leads activos</div>
-      </div>
-      <div class="stat-card c-danger">
-        <div class="label">Sin tarea</div>
-        <div class="value">${fmt(totals.tasksNoTask || 0)}</div>
-        <div class="sub">leads activos</div>
+      <div class="summary-row">
+        <div class="stat-card c-success">
+          <div class="label">Tareas al día</div>
+          <div class="value">${fmt(totals.tasksUpToDate || 0)}</div>
+          <div class="sub">leads activos</div>
+        </div>
+        <div class="stat-card c-warning">
+          <div class="label">Tareas vencidas</div>
+          <div class="value">${fmt(totals.tasksOverdue || 0)}</div>
+          <div class="sub">leads activos</div>
+        </div>
+        <div class="stat-card c-danger">
+          <div class="label">Sin tarea</div>
+          <div class="value">${fmt(totals.tasksNoTask || 0)}</div>
+          <div class="sub">leads activos</div>
+        </div>
       </div>
     `;
   }
