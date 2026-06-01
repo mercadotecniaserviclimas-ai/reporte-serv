@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reporte de Leads · Serviclimas</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #4f8ef7;
+      --accent2: #7c5cfc;
+      --danger: #f74f6a;
+      --warning: #f7a84f;
+      --success: #4fcf8e;
+      --muted: #8891b2;
+      --text: #e8eaf6;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent); }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #status-badge {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    #btn-refresh {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    #btn-refresh:hover { opacity: 0.85; }
+    #btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .stat-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .stat-card .label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    .stat-card.danger .value { color: var(--danger); }
+    .stat-card.warning .value { color: var(--warning); }
+    .stat-card.success .value { color: var(--success); }
+    .stat-card.accent .value { color: var(--accent); }
+
+    /* Advisor section */
+    .advisor-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .advisor-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .advisor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .advisor-name {
+      font-weight: 700;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .advisor-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .advisor-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .pill.danger { background: rgba(247,79,106,0.15); color: var(--danger); }
+    .pill.warning { background: rgba(247,168,79,0.15); color: var(--warning); }
+    .pill.success { background: rgba(79,207,142,0.15); color: var(--success); }
+    .pill.muted { background: rgba(136,145,178,0.15); color: var(--muted); }
+
+    .advisor-body {
+      padding: 0 24px 24px;
+      display: none;
+    }
+    .advisor-body.open { display: block; }
+
+    .category-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin: 20px 0 10px;
+      font-weight: 600;
+    }
+
+    .leads-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .leads-table th {
+      text-align: left;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .leads-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(46,51,80,0.5);
+      vertical-align: top;
+    }
+
+    .leads-table tr:last-child td { border-bottom: none; }
+
+    .lead-name {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .lead-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .badge.danger { background: rgba(247,79,106,0.15); color: var(--danger); }
+    .badge.warning { background: rgba(247,168,79,0.15); color: var(--warning); }
+    .badge.success { background: rgba(79,207,142,0.15); color: var(--success); }
+
+    .task-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 4px;
+    }
+    .task-list li {
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 1px 0;
+    }
+    .task-list li.overdue { color: var(--danger); }
+    .task-list li.ok { color: var(--success); }
+
+    .empty-msg {
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 12px 0;
+      font-style: italic;
+    }
+
+    #loading, #error-msg {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+    #error-msg { color: var(--danger); }
+
+    .chevron {
+      color: var(--muted);
+      transition: transform 0.2s;
+      font-size: 1.1rem;
+    }
+    .chevron.open { transform: rotate(180deg); }
+
+    @media (max-width: 600px) {
+      header { padding: 14px 16px; }
+      .container { padding: 18px 12px; }
+      .advisor-header { padding: 14px 16px; }
+      .advisor-body { padding: 0 16px 16px; }
+      .advisor-pills { display: none; }
+      .leads-table th:last-child, .leads-table td:last-child { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Serviclimas <span>·</span> Reporte Kommo</div>
+  <div class="header-right">
+    <span id="status-badge">Cargando...</span>
+    <button id="btn-refresh">⟳ Actualizar</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="loading">Obteniendo datos de Kommo, un momento...</div>
+  <div id="error-msg" style="display:none;"></div>
+  <div id="content" style="display:none;">
+    <div class="summary-grid" id="summary-grid"></div>
+    <div class="advisor-grid" id="advisor-grid"></div>
+  </div>
+</div>
+
+<script>
+  const statusBadge = document.getElementById('status-badge');
+  const btnRefresh = document.getElementById('btn-refresh');
+  const loadingEl = document.getElementById('loading');
+  const errorEl = document.getElementById('error-msg');
+  const contentEl = document.getElementById('content');
+
+  function formatDate(ts) {
+    if (!ts) return '—';
+    return new Date(ts * 1000).toLocaleDateString('es-MX', {
+      day: '2-digit', month: 'short', year: 'numeric',
+    });
+  }
+
+  function formatDateTime(ts) {
+    if (!ts) return '—';
+    return new Date(ts * 1000).toLocaleString('es-MX', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  function initials(name) {
+    return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  }
+
+  function renderSummary(data) {
+    const totals = data.totals;
+    const advisors = data.advisors;
+
+    const totalSinSeg = advisors.reduce((s, a) => s + a.sinSeguimiento.length, 0);
+    const totalSinTarea = advisors.reduce((s, a) => s + a.sinTareas.length, 0);
+    const totalVencidas = advisors.reduce((s, a) => s + a.tareasVencidas.length, 0);
+    const totalAlDia = advisors.reduce((s, a) => s + a.tareasAlDia.length, 0);
+
+    const grid = document.getElementById('summary-grid');
+    grid.innerHTML = `
+      <div class="card stat-card accent">
+        <div class="label">Leads activos</div>
+        <div class="value">${totals.totalLeads}</div>
+      </div>
+      <div class="card stat-card danger">
+        <div class="label">Sin seguimiento (+3 días)</div>
+        <div class="value">${totalSinSeg}</div>
+      </div>
+      <div class="card stat-card warning">
+        <div class="label">Sin tareas</div>
+        <div class="value">${totalSinTarea}</div>
+      </div>
+      <div class="card stat-card danger">
+        <div class="label">Tareas vencidas</div>
+        <div class="value">${totalVencidas}</div>
+      </div>
+      <div class="card stat-card success">
+        <div class="label">Tareas al día</div>
+        <div class="value">${totalAlDia}</div>
+      </div>
+    `;
+  }
+
+  function renderLeadRow(lead, categoryHint) {
+    const taskHtml = lead.tasks.length
+      ? `<ul class="task-list">${lead.tasks.map(t =>
+          `<li class="${t.isOverdue ? 'overdue' : 'ok'}">
+            ${t.isOverdue ? '⚠' : '✓'} ${t.text || 'Tarea'} · ${formatDateTime(t.completeTill)}
+          </li>`
+        ).join('')}</ul>`
+      : `<span class="badge warning">Sin tareas</span>`;
+
+    const diasBadge = lead.daysSinceUpdate !== null
+      ? `<span class="badge ${lead.daysSinceUpdate > 3 ? 'danger' : 'success'}">${lead.daysSinceUpdate}d sin actualizar</span>`
+      : '';
+
+    return `<tr>
+      <td>
+        <div class="lead-name">${lead.name}</div>
+        <div class="lead-meta">#${lead.id} ${lead.price ? `· $${lead.price.toLocaleString('es-MX')}` : ''}</div>
+      </td>
+      <td>${diasBadge}</td>
+      <td>${taskHtml}</td>
+    </tr>`;
+  }
+
+  function renderCategory(title, leads, colorClass) {
+    if (!leads.length) return '';
+    return `
+      <div class="category-title" style="color:${colorClass}">${title} (${leads.length})</div>
+      <table class="leads-table">
+        <thead><tr>
+          <th>Lead</th>
+          <th>Última actualización</th>
+          <th>Tareas</th>
+        </tr></thead>
+        <tbody>${leads.map(l => renderLeadRow(l)).join('')}</tbody>
+      </table>
+    `;
+  }
+
+  function renderAdvisors(advisors) {
+    const grid = document.getElementById('advisor-grid');
+    grid.innerHTML = '';
+
+    if (!advisors.length) {
+      grid.innerHTML = '<div class="empty-msg">No se encontraron asesores con leads activos.</div>';
+      return;
+    }
+
+    advisors.forEach((adv, i) => {
+      const el = document.createElement('div');
+      el.className = 'advisor-card';
+
+      const pills = [
+        adv.sinSeguimiento.length ? `<span class="pill danger">⚠ ${adv.sinSeguimiento.length} sin seguimiento</span>` : '',
+        adv.sinTareas.length ? `<span class="pill warning">📋 ${adv.sinTareas.length} sin tarea</span>` : '',
+        adv.tareasVencidas.length ? `<span class="pill danger">🔴 ${adv.tareasVencidas.length} vencidas</span>` : '',
+        adv.tareasAlDia.length ? `<span class="pill success">✅ ${adv.tareasAlDia.length} al día</span>` : '',
+      ].filter(Boolean).join('');
+
+      const body = [
+        renderCategory('⚠ Sin seguimiento (+3 días)', adv.sinSeguimiento, 'var(--danger)'),
+        renderCategory('📋 Sin tareas', adv.sinTareas, 'var(--warning)'),
+        renderCategory('🔴 Tareas vencidas', adv.tareasVencidas, 'var(--danger)'),
+        renderCategory('✅ Tareas al día', adv.tareasAlDia, 'var(--success)'),
+      ].join('') || '<div class="empty-msg">Sin leads en ninguna categoría de alerta.</div>';
+
+      el.innerHTML = `
+        <div class="advisor-header" onclick="toggleAdvisor(this)">
+          <div class="advisor-name">
+            <div class="advisor-avatar">${initials(adv.advisorName)}</div>
+            ${adv.advisorName}
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div class="advisor-pills">${pills}</div>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        <div class="advisor-body">${body}</div>
+      `;
+
+      grid.appendChild(el);
+    });
+  }
+
+  function toggleAdvisor(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('.chevron');
+    body.classList.toggle('open');
+    chevron.classList.toggle('open');
+  }
+
+  async function loadReport() {
+    try {
+      const res = await fetch('/api/report');
+      const json = await res.json();
+
+      if (json.isLoading) {
+        statusBadge.textContent = '⏳ Actualizando...';
+        btnRefresh.disabled = true;
+        setTimeout(loadReport, 3000);
+        return;
+      }
+
+      btnRefresh.disabled = false;
+
+      if (json.error) {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        errorEl.textContent = '❌ Error: ' + json.error;
+        statusBadge.textContent = 'Error al cargar';
+        return;
+      }
+
+      if (!json.data) {
+        setTimeout(loadReport, 2000);
+        return;
+      }
+
+      loadingEl.style.display = 'none';
+      errorEl.style.display = 'none';
+      contentEl.style.display = 'block';
+
+      const updatedAt = json.lastUpdated
+        ? new Date(json.lastUpdated).toLocaleString('es-MX')
+        : '—';
+      statusBadge.textContent = `Actualizado: ${updatedAt}`;
+
+      renderSummary(json.data);
+      renderAdvisors(json.data.advisors);
+    } catch (e) {
+      statusBadge.textContent = 'Error de conexión';
+      btnRefresh.disabled = false;
+      setTimeout(loadReport, 5000);
+    }
+  }
+
+  btnRefresh.addEventListener('click', async () => {
+    btnRefresh.disabled = true;
+    statusBadge.textContent = '⏳ Solicitando actualización...';
+    await fetch('/api/refresh', { method: 'POST' });
+    setTimeout(loadReport, 1500);
+  });
+
+  loadReport();
+</script>
+</body>
+</html>

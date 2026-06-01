@@ -1,0 +1,15 @@
+{
+  "name": "kommo-reporte",
+  "version": "1.0.0",
+  "description": "Reporte de seguimiento de leads Kommo para Serviclimas",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3",
+    "axios": "^1.6.0"
+  }
+}

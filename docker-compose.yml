@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  kommo-reporte:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - KOMMO_SUBDOMAIN=ventasserviclimascom
+      - KOMMO_TOKEN=TU_ACCESS_TOKEN_AQUI
+      - PORT=3000
+    restart: unless-stopped
