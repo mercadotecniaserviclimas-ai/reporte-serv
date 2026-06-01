@@ -1,48 +1,49 @@
 const express = require('express');
-const cron = require('node-cron');
-const path = require('path');
-const { fetchReportData } = require('./kommo');
+const cron    = require('node-cron');
+const path    = require('path');
+const { fetchRawData, buildReport } = require('./kommo');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// In-memory cache del último reporte
-let lastReport = null;
+let rawData    = null; // datos crudos cacheados
 let lastUpdated = null;
-let isLoading = false;
-let lastError = null;
+let isLoading  = false;
+let lastError  = null;
 
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
-// Endpoint: obtener reporte cacheado
+// Endpoint: obtener reporte con filtros opcionales de fecha
+// Query params: dateFrom, dateTo (ISO strings), dateField ('created_at' | 'closed_at')
 app.get('/api/report', (req, res) => {
-  res.json({
-    data: lastReport,
-    lastUpdated,
-    isLoading,
-    error: lastError,
-  });
+  const { dateFrom, dateTo, dateField } = req.query;
+
+  const filters = {
+    dateFrom:  dateFrom ? new Date(dateFrom).getTime() : null,
+    dateTo:    dateTo   ? new Date(dateTo).getTime()   : null,
+    dateField: dateField || 'created_at',
+  };
+
+  const data = rawData ? buildReport(rawData, filters) : null;
+
+  res.json({ data, lastUpdated, isLoading, error: lastError });
 });
 
 // Endpoint: forzar refresh manual
 app.post('/api/refresh', async (req, res) => {
-  if (isLoading) {
-    return res.json({ message: 'Ya hay una actualización en curso' });
-  }
+  if (isLoading) return res.json({ message: 'Ya hay una actualización en curso' });
   runReport();
   res.json({ message: 'Actualización iniciada' });
 });
 
-// Función principal de reporte
 async function runReport() {
   if (isLoading) return;
   isLoading = true;
   lastError = null;
   console.log(`[${new Date().toISOString()}] Ejecutando reporte Kommo...`);
   try {
-    const data = await fetchReportData();
-    lastReport = data;
+    rawData    = await fetchRawData();
     lastUpdated = new Date().toISOString();
     console.log(`[${new Date().toISOString()}] Reporte actualizado exitosamente.`);
   } catch (err) {
@@ -54,11 +55,8 @@ async function runReport() {
 }
 
 // Cron: cada hora en punto
-cron.schedule('0 * * * *', () => {
-  runReport();
-});
+cron.schedule('0 * * * *', () => { runReport(); });
 
-// Cargar datos al iniciar
 runReport();
 
 app.listen(PORT, () => {

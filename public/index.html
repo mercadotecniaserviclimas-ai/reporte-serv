@@ -236,12 +236,83 @@
     }
     #error-msg { color: var(--danger); }
 
+    /* Filter bar */
+    .filter-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .filter-bar label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .filter-bar input[type="date"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.83rem;
+      padding: 6px 10px;
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-bar input[type="date"]:focus { border-color: var(--accent); }
+
+    .filter-sep { color: var(--border); font-size: 0.9rem; }
+
+    .seg-buttons { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .seg-btn {
+      padding: 6px 13px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .seg-btn.active { background: var(--accent); color: #fff; }
+
+    .quick-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .qf-btn {
+      padding: 5px 11px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .qf-btn:hover, .qf-btn.active { border-color: var(--accent); color: var(--accent); }
+
+    .filter-divider {
+      width: 1px; height: 22px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
     @media (max-width: 600px) {
       header { padding: 12px 14px; }
       .container { padding: 16px 12px; }
       .advisor-header { padding: 14px 14px; }
       .sections { padding: 0 14px 18px; }
       .advisor-chips { display: none; }
+      .filter-divider { display: none; }
     }
   </style>
 </head>
@@ -259,6 +330,41 @@
   <div id="loading">Obteniendo datos de Kommo, un momento...</div>
   <div id="error-msg" style="display:none;"></div>
   <div id="content" style="display:none;">
+
+    <!-- Filtros -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Filtrar por</label>
+        <div class="seg-buttons">
+          <button class="seg-btn active" data-field="created_at">Creación</button>
+          <button class="seg-btn"        data-field="closed_at">Cierre</button>
+        </div>
+      </div>
+
+      <div class="filter-divider"></div>
+
+      <div class="filter-group">
+        <label>Periodo</label>
+        <div class="quick-filters">
+          <button class="qf-btn" data-preset="today">Hoy</button>
+          <button class="qf-btn" data-preset="week">Esta semana</button>
+          <button class="qf-btn" data-preset="month">Este mes</button>
+          <button class="qf-btn" data-preset="last_month">Mes anterior</button>
+          <button class="qf-btn" data-preset="year">Este año</button>
+          <button class="qf-btn active" data-preset="all">Todo</button>
+        </div>
+      </div>
+
+      <div class="filter-divider"></div>
+
+      <div class="filter-group">
+        <label>Personalizado</label>
+        <input type="date" id="date-from" title="Desde" />
+        <span class="filter-sep">→</span>
+        <input type="date" id="date-to" title="Hasta" />
+      </div>
+    </div>
+
     <div class="summary-strip" id="summary-strip"></div>
     <div class="advisors" id="advisors-list"></div>
   </div>
@@ -271,6 +377,103 @@
   const loadingEl   = $('loading');
   const errorEl     = $('error-msg');
   const contentEl   = $('content');
+
+  // ── Filtro de fechas ──────────────────────────────────────────────────────
+  let currentField = 'created_at';
+  let currentFrom  = null;
+  let currentTo    = null;
+
+  function toISO(dateStr, endOfDay = false) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (endOfDay) d.setHours(23, 59, 59, 999);
+    return d.toISOString();
+  }
+
+  function applyPreset(preset) {
+    const now   = new Date();
+    const y     = now.getFullYear();
+    const m     = now.getMonth();
+    const d     = now.getDate();
+    const pad   = n => String(n).padStart(2, '0');
+    const ymd   = dt => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+
+    let from = null, to = null;
+
+    if (preset === 'today') {
+      from = to = ymd(now);
+    } else if (preset === 'week') {
+      const mon = new Date(y, m, d - ((now.getDay() + 6) % 7));
+      from = ymd(mon);
+      to   = ymd(now);
+    } else if (preset === 'month') {
+      from = `${y}-${pad(m+1)}-01`;
+      to   = ymd(now);
+    } else if (preset === 'last_month') {
+      const lm = new Date(y, m, 0);
+      from = `${lm.getFullYear()}-${pad(lm.getMonth()+1)}-01`;
+      to   = ymd(lm);
+    } else if (preset === 'year') {
+      from = `${y}-01-01`;
+      to   = ymd(now);
+    } else {
+      from = to = null; // 'all'
+    }
+
+    $('date-from').value = from || '';
+    $('date-to').value   = to   || '';
+    currentFrom = from;
+    currentTo   = to;
+  }
+
+  // Botones de campo (creación / cierre)
+  document.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentField = btn.dataset.field;
+      renderWithFilters();
+    });
+  });
+
+  // Botones de preset
+  document.querySelectorAll('.qf-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyPreset(btn.dataset.preset);
+      // Limpiar selección personalizada si se eligió un preset
+      renderWithFilters();
+    });
+  });
+
+  // Inputs manuales de fecha
+  $('date-from').addEventListener('change', () => {
+    currentFrom = $('date-from').value;
+    document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
+    renderWithFilters();
+  });
+  $('date-to').addEventListener('change', () => {
+    currentTo = $('date-to').value;
+    document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
+    renderWithFilters();
+  });
+
+  async function renderWithFilters() {
+    const params = new URLSearchParams({ dateField: currentField });
+    if (currentFrom) params.set('dateFrom', toISO(currentFrom));
+    if (currentTo)   params.set('dateTo',   toISO(currentTo, true));
+
+    try {
+      const res  = await fetch('/api/report?' + params.toString());
+      const json = await res.json();
+      if (json.data) {
+        json.data.totals.totalAdvisors = json.data.advisors.length;
+        renderSummary(json.data.totals);
+        renderAdvisors(json.data.advisors);
+      }
+    } catch { /* silent */ }
+  }
 
   const fmt = n => (n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const fmtMXN = n => '$' + fmt(n);
@@ -465,6 +668,8 @@
       data.totals.totalAdvisors = data.advisors.length;
       renderSummary(data.totals);
       renderAdvisors(data.advisors);
+      // Aplicar filtros activos tras la carga inicial
+      renderWithFilters();
     } catch {
       statusBadge.textContent = 'Error de conexión';
       btnRefresh.disabled = false;

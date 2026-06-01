@@ -54,7 +54,6 @@ async function fetchUsers() {
   return map;
 }
 
-// Obtiene todos los pipelines y mapea statusId → { name, pipelineName, sort }
 async function fetchPipelines() {
   const res = await rateLimitedGet('/leads/pipelines', { params: { limit: 250 } });
   const pipelines = res.data?._embedded?.pipelines || [];
@@ -88,21 +87,57 @@ function getServiceType(lead) {
   return field?.values?.[0]?.value || null;
 }
 
-async function fetchReportData() {
+// Descarga todos los datos crudos de Kommo (se llama cada hora)
+async function fetchRawData() {
   if (!ACCESS_TOKEN) {
     throw new Error('KOMMO_TOKEN no configurado. Por favor agrega tu token en las variables de entorno.');
   }
 
-  const [usersMap, allLeads, stageMap] = await Promise.all([
+  const [usersMap, leads, stageMap] = await Promise.all([
     fetchUsers(),
     fetchAll('/leads', { with: 'loss_reason' }),
     fetchPipelines(),
   ]);
 
+  return { usersMap, leads, stageMap };
+}
+
+// Agrega los datos crudos en el reporte, aplicando filtros de fecha opcionales.
+// dateFrom / dateTo: timestamps en milisegundos (o null)
+// dateField: 'created_at' | 'closed_at'
+//   - created_at → filtra todos los leads por fecha de creación
+//   - closed_at  → filtra solo leads ganados/perdidos por fecha de cierre
+function buildReport(rawData, { dateFrom = null, dateTo = null, dateField = 'created_at' } = {}) {
+  const { usersMap, stageMap } = rawData;
+  let leads = rawData.leads;
+
+  if (dateFrom || dateTo) {
+    const filterByClosed = dateField === 'closed_at';
+    leads = leads.filter(lead => {
+      const isWon  = lead.status_id === 142;
+      const isLost = lead.status_id === 143;
+
+      if (filterByClosed) {
+        // Solo incluir cerrados; activos no tienen fecha de cierre
+        if (!isWon && !isLost) return false;
+        const ts = (lead.closed_at || lead.updated_at) * 1000;
+        if (dateFrom && ts < dateFrom) return false;
+        if (dateTo  && ts > dateTo)   return false;
+        return true;
+      } else {
+        // Filtrar todos los leads por fecha de creación
+        const ts = lead.created_at * 1000;
+        if (dateFrom && ts < dateFrom) return false;
+        if (dateTo  && ts > dateTo)   return false;
+        return true;
+      }
+    });
+  }
+
   const byAdvisor = {};
 
-  for (const lead of allLeads) {
-    const userId = lead.responsible_user_id;
+  for (const lead of leads) {
+    const userId     = lead.responsible_user_id;
     const advisorName = usersMap[userId] || `Asesor ${userId}`;
 
     if (!byAdvisor[userId]) {
@@ -116,12 +151,11 @@ async function fetchReportData() {
       };
     }
 
-    const adv = byAdvisor[userId];
+    const adv   = byAdvisor[userId];
     const value = lead.price || 0;
     const isWon  = lead.status_id === 142;
     const isLost = lead.status_id === 143;
 
-    // Tipo de servicio
     const serviceType = getServiceType(lead) || 'Sin clasificar';
     if (!adv.byServiceType[serviceType]) adv.byServiceType[serviceType] = { count: 0, value: 0 };
     adv.byServiceType[serviceType].count++;
@@ -140,14 +174,14 @@ async function fetchReportData() {
     } else {
       adv.active.count++;
       adv.active.value += value;
-      const stage = stageMap[lead.status_id];
+      const stage    = stageMap[lead.status_id];
       const stageKey = lead.status_id;
       if (!adv.active.byStage[stageKey]) {
         adv.active.byStage[stageKey] = {
-          name: stage?.name || `Etapa ${stageKey}`,
+          name:  stage?.name || `Etapa ${stageKey}`,
           count: 0,
           value: 0,
-          sort: stage?.sort ?? 999,
+          sort:  stage?.sort ?? 999,
         };
       }
       adv.active.byStage[stageKey].count++;
@@ -175,15 +209,15 @@ async function fetchReportData() {
   return {
     advisors,
     totals: {
-      totalLeads:      allLeads.length,
-      totalActive:     advisors.reduce((s, a) => s + a.active.count, 0),
-      totalWon:        advisors.reduce((s, a) => s + a.won.count, 0),
-      totalLost:       advisors.reduce((s, a) => s + a.lost.count, 0),
+      totalLeads:       leads.length,
+      totalActive:      advisors.reduce((s, a) => s + a.active.count, 0),
+      totalWon:         advisors.reduce((s, a) => s + a.won.count, 0),
+      totalLost:        advisors.reduce((s, a) => s + a.lost.count, 0),
       totalActiveValue: advisors.reduce((s, a) => s + a.active.value, 0),
-      totalWonValue:   advisors.reduce((s, a) => s + a.won.value, 0),
-      totalLostValue:  advisors.reduce((s, a) => s + a.lost.value, 0),
+      totalWonValue:    advisors.reduce((s, a) => s + a.won.value, 0),
+      totalLostValue:   advisors.reduce((s, a) => s + a.lost.value, 0),
     },
   };
 }
 
-module.exports = { fetchReportData };
+module.exports = { fetchRawData, buildReport };
