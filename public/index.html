@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reporte de Leads · Serviclimas</title>
+  <title>Reporte de Asesores · Serviclimas</title>
   <style>
     :root {
       --bg: #0f1117;
@@ -32,7 +32,7 @@
     header {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 18px 32px;
+      padding: 16px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -41,82 +41,57 @@
       z-index: 100;
     }
 
-    .logo {
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      color: var(--text);
-    }
+    .logo { font-size: 1.1rem; font-weight: 700; }
     .logo span { color: var(--accent); }
 
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
+    .header-right { display: flex; align-items: center; gap: 14px; }
 
-    #status-badge {
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
+    #status-badge { font-size: 0.78rem; color: var(--muted); }
 
     #btn-refresh {
       background: var(--accent);
       color: #fff;
       border: none;
-      padding: 8px 18px;
+      padding: 7px 16px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.83rem;
       font-weight: 600;
-      transition: opacity 0.2s;
     }
-    #btn-refresh:hover { opacity: 0.85; }
     #btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
 
-    /* Summary cards */
-    .summary-grid {
+    /* Summary strip */
+    .summary-strip {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
     }
 
     .stat-card {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
     }
     .stat-card .label {
-      font-size: 0.78rem;
+      font-size: 0.73rem;
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      margin-bottom: 6px;
     }
-    .stat-card .value {
-      font-size: 2rem;
-      font-weight: 700;
-    }
-    .stat-card.danger .value { color: var(--danger); }
-    .stat-card.warning .value { color: var(--warning); }
-    .stat-card.success .value { color: var(--success); }
-    .stat-card.accent .value { color: var(--accent); }
+    .stat-card .value { font-size: 1.7rem; font-weight: 700; line-height: 1; }
+    .stat-card .sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+    .stat-card.c-accent .value { color: var(--accent); }
+    .stat-card.c-success .value { color: var(--success); }
+    .stat-card.c-danger .value { color: var(--danger); }
+    .stat-card.c-warning .value { color: var(--warning); }
 
-    /* Advisor section */
-    .advisor-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
+    /* Advisor cards */
+    .advisors { display: flex; flex-direction: column; gap: 20px; }
 
     .advisor-card {
       background: var(--surface);
@@ -129,158 +104,151 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 24px;
+      padding: 16px 22px;
       background: var(--surface2);
       border-bottom: 1px solid var(--border);
       cursor: pointer;
       user-select: none;
+      gap: 12px;
     }
 
-    .advisor-name {
-      font-weight: 700;
-      font-size: 1.05rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .advisor-left { display: flex; align-items: center; gap: 12px; }
 
-    .advisor-avatar {
-      width: 34px;
-      height: 34px;
+    .avatar {
+      width: 38px; height: 38px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.85rem;
-      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700;
+      flex-shrink: 0;
     }
 
-    .advisor-pills {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+    .advisor-name { font-weight: 700; font-size: 1rem; }
 
-    .pill {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 20px;
-    }
-    .pill.danger { background: rgba(247,79,106,0.15); color: var(--danger); }
-    .pill.warning { background: rgba(247,168,79,0.15); color: var(--warning); }
-    .pill.success { background: rgba(79,207,142,0.15); color: var(--success); }
-    .pill.muted { background: rgba(136,145,178,0.15); color: var(--muted); }
+    .advisor-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    .advisor-body {
-      padding: 0 24px 24px;
-      display: none;
+    .chip {
+      font-size: 0.73rem; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px;
     }
+    .chip.active  { background: rgba(79,142,247,.15); color: var(--accent); }
+    .chip.won     { background: rgba(79,207,142,.15); color: var(--success); }
+    .chip.lost    { background: rgba(247,79,106,.15); color: var(--danger); }
+
+    .chevron { color: var(--muted); font-size: 1rem; transition: transform .2s; flex-shrink: 0; }
+    .chevron.open { transform: rotate(180deg); }
+
+    /* Advisor body */
+    .advisor-body { display: none; }
     .advisor-body.open { display: block; }
 
-    .category-title {
-      font-size: 0.78rem;
+    .sections { padding: 0 22px 22px; display: flex; flex-direction: column; gap: 20px; }
+
+    .section-title {
+      font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: var(--muted);
-      margin: 20px 0 10px;
-      font-weight: 600;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-
-    .leads-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-    }
-
-    .leads-table th {
-      text-align: left;
-      padding: 8px 12px;
-      color: var(--muted);
+    .section-title .total-badge {
       font-size: 0.75rem;
-      font-weight: 600;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .leads-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(46,51,80,0.5);
-      vertical-align: top;
-    }
-
-    .leads-table tr:last-child td { border-bottom: none; }
-
-    .lead-name {
-      font-weight: 600;
-      color: var(--text);
-    }
-    .lead-meta {
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .badge {
-      display: inline-block;
-      font-size: 0.72rem;
       font-weight: 600;
       padding: 2px 8px;
       border-radius: 6px;
+      text-transform: none;
+      letter-spacing: 0;
     }
-    .badge.danger { background: rgba(247,79,106,0.15); color: var(--danger); }
-    .badge.warning { background: rgba(247,168,79,0.15); color: var(--warning); }
-    .badge.success { background: rgba(79,207,142,0.15); color: var(--success); }
 
-    .task-list {
-      list-style: none;
-      padding: 0;
+    .section-title.c-active  { color: var(--accent); }
+    .section-title.c-won     { color: var(--success); }
+    .section-title.c-lost    { color: var(--danger); }
+    .section-title.c-service { color: var(--warning); }
+
+    .section-title.c-active  .total-badge { background: rgba(79,142,247,.15); color: var(--accent); }
+    .section-title.c-won     .total-badge { background: rgba(79,207,142,.15); color: var(--success); }
+    .section-title.c-lost    .total-badge { background: rgba(247,79,106,.15); color: var(--danger); }
+    .section-title.c-service .total-badge { background: rgba(247,168,79,.15); color: var(--warning); }
+
+    /* Mini table */
+    .mini-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .mini-table th {
+      text-align: left; padding: 6px 10px;
+      color: var(--muted); font-size: 0.72rem; font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .mini-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(46,51,80,.4);
+    }
+    .mini-table tr:last-child td { border-bottom: none; }
+    .mini-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .mini-table .stage-name { font-weight: 600; }
+    .mini-table .count-cell { color: var(--muted); }
+
+    /* Stage bar */
+    .stage-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       margin-top: 4px;
     }
-    .task-list li {
-      font-size: 0.78rem;
-      color: var(--muted);
-      padding: 1px 0;
+    .stage-bar-fill {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--accent);
+      min-width: 3px;
     }
-    .task-list li.overdue { color: var(--danger); }
-    .task-list li.ok { color: var(--success); }
 
-    .empty-msg {
-      color: var(--muted);
-      font-size: 0.85rem;
-      padding: 12px 0;
-      font-style: italic;
+    /* Won row */
+    .won-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 0;
+      font-size: 0.9rem;
     }
+    .won-row .big-value { font-size: 1.4rem; font-weight: 700; color: var(--success); }
+    .won-row .meta { color: var(--muted); font-size: 0.82rem; }
+
+    /* Service type pills */
+    .service-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+    .service-pill {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+    }
+    .service-pill .pill-name { font-weight: 600; color: var(--warning); }
+    .service-pill .pill-meta { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+
+    /* Separator */
+    .sep { border: none; border-top: 1px solid var(--border); margin-top: 20px; }
 
     #loading, #error-msg {
       text-align: center;
       padding: 60px 24px;
       color: var(--muted);
-      font-size: 1rem;
     }
     #error-msg { color: var(--danger); }
 
-    .chevron {
-      color: var(--muted);
-      transition: transform 0.2s;
-      font-size: 1.1rem;
-    }
-    .chevron.open { transform: rotate(180deg); }
-
     @media (max-width: 600px) {
-      header { padding: 14px 16px; }
-      .container { padding: 18px 12px; }
-      .advisor-header { padding: 14px 16px; }
-      .advisor-body { padding: 0 16px 16px; }
-      .advisor-pills { display: none; }
-      .leads-table th:last-child, .leads-table td:last-child { display: none; }
+      header { padding: 12px 14px; }
+      .container { padding: 16px 12px; }
+      .advisor-header { padding: 14px 14px; }
+      .sections { padding: 0 14px 18px; }
+      .advisor-chips { display: none; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">Serviclimas <span>·</span> Reporte Kommo</div>
+  <div class="logo">Serviclimas <span>·</span> Reporte Asesores</div>
   <div class="header-right">
     <span id="status-badge">Cargando...</span>
     <button id="btn-refresh">⟳ Actualizar</button>
@@ -291,163 +259,178 @@
   <div id="loading">Obteniendo datos de Kommo, un momento...</div>
   <div id="error-msg" style="display:none;"></div>
   <div id="content" style="display:none;">
-    <div class="summary-grid" id="summary-grid"></div>
-    <div class="advisor-grid" id="advisor-grid"></div>
+    <div class="summary-strip" id="summary-strip"></div>
+    <div class="advisors" id="advisors-list"></div>
   </div>
 </div>
 
 <script>
-  const statusBadge = document.getElementById('status-badge');
-  const btnRefresh = document.getElementById('btn-refresh');
-  const loadingEl = document.getElementById('loading');
-  const errorEl = document.getElementById('error-msg');
-  const contentEl = document.getElementById('content');
+  const $ = id => document.getElementById(id);
+  const statusBadge = $('status-badge');
+  const btnRefresh  = $('btn-refresh');
+  const loadingEl   = $('loading');
+  const errorEl     = $('error-msg');
+  const contentEl   = $('content');
 
-  function formatDate(ts) {
-    if (!ts) return '—';
-    return new Date(ts * 1000).toLocaleDateString('es-MX', {
-      day: '2-digit', month: 'short', year: 'numeric',
-    });
-  }
+  const fmt = n => (n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const fmtMXN = n => '$' + fmt(n);
+  const initials = name => name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
-  function formatDateTime(ts) {
-    if (!ts) return '—';
-    return new Date(ts * 1000).toLocaleString('es-MX', {
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-    });
-  }
-
-  function initials(name) {
-    return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
-  }
-
-  function renderSummary(data) {
-    const totals = data.totals;
-    const advisors = data.advisors;
-
-    const totalSinSeg = advisors.reduce((s, a) => s + a.sinSeguimiento.length, 0);
-    const totalSinTarea = advisors.reduce((s, a) => s + a.sinTareas.length, 0);
-    const totalVencidas = advisors.reduce((s, a) => s + a.tareasVencidas.length, 0);
-    const totalAlDia = advisors.reduce((s, a) => s + a.tareasAlDia.length, 0);
-
-    const grid = document.getElementById('summary-grid');
-    grid.innerHTML = `
-      <div class="card stat-card accent">
-        <div class="label">Leads activos</div>
-        <div class="value">${totals.totalLeads}</div>
+  function renderSummary(totals) {
+    $('summary-strip').innerHTML = `
+      <div class="stat-card c-accent">
+        <div class="label">En pipeline</div>
+        <div class="value">${fmt(totals.totalActive)}</div>
+        <div class="sub">${fmtMXN(totals.totalActiveValue)}</div>
       </div>
-      <div class="card stat-card danger">
-        <div class="label">Sin seguimiento (+3 días)</div>
-        <div class="value">${totalSinSeg}</div>
+      <div class="stat-card c-success">
+        <div class="label">Ganados</div>
+        <div class="value">${fmt(totals.totalWon)}</div>
+        <div class="sub">${fmtMXN(totals.totalWonValue)}</div>
       </div>
-      <div class="card stat-card warning">
-        <div class="label">Sin tareas</div>
-        <div class="value">${totalSinTarea}</div>
+      <div class="stat-card c-danger">
+        <div class="label">Perdidos</div>
+        <div class="value">${fmt(totals.totalLost)}</div>
+        <div class="sub">${fmtMXN(totals.totalLostValue)}</div>
       </div>
-      <div class="card stat-card danger">
-        <div class="label">Tareas vencidas</div>
-        <div class="value">${totalVencidas}</div>
-      </div>
-      <div class="card stat-card success">
-        <div class="label">Tareas al día</div>
-        <div class="value">${totalAlDia}</div>
+      <div class="stat-card c-warning">
+        <div class="label">Total leads</div>
+        <div class="value">${fmt(totals.totalLeads)}</div>
+        <div class="sub">${totals.totalAdvisors || ''} asesores</div>
       </div>
     `;
   }
 
-  function renderLeadRow(lead, categoryHint) {
-    const taskHtml = lead.tasks.length
-      ? `<ul class="task-list">${lead.tasks.map(t =>
-          `<li class="${t.isOverdue ? 'overdue' : 'ok'}">
-            ${t.isOverdue ? '⚠' : '✓'} ${t.text || 'Tarea'} · ${formatDateTime(t.completeTill)}
-          </li>`
-        ).join('')}</ul>`
-      : `<span class="badge warning">Sin tareas</span>`;
+  function renderActiveStages(active) {
+    if (!active.count) return '';
+    const maxValue = Math.max(...active.byStage.map(s => s.value), 1);
+    const rows = active.byStage.map(s => {
+      const pct = Math.round((s.value / maxValue) * 100);
+      return `<tr>
+        <td class="stage-name">${s.name}</td>
+        <td class="num count-cell">${fmt(s.count)}</td>
+        <td class="num">${fmtMXN(s.value)}
+          <div class="stage-bar"><div class="stage-bar-fill" style="width:${pct}px;max-width:100px"></div></div>
+        </td>
+      </tr>`;
+    }).join('');
 
-    const diasBadge = lead.daysSinceUpdate !== null
-      ? `<span class="badge ${lead.daysSinceUpdate > 3 ? 'danger' : 'success'}">${lead.daysSinceUpdate}d sin actualizar</span>`
-      : '';
-
-    return `<tr>
-      <td>
-        <div class="lead-name">${lead.name}</div>
-        <div class="lead-meta">#${lead.id} ${lead.price ? `· $${lead.price.toLocaleString('es-MX')}` : ''}</div>
-      </td>
-      <td>${diasBadge}</td>
-      <td>${taskHtml}</td>
-    </tr>`;
-  }
-
-  function renderCategory(title, leads, colorClass) {
-    if (!leads.length) return '';
     return `
-      <div class="category-title" style="color:${colorClass}">${title} (${leads.length})</div>
-      <table class="leads-table">
-        <thead><tr>
-          <th>Lead</th>
-          <th>Última actualización</th>
-          <th>Tareas</th>
-        </tr></thead>
-        <tbody>${leads.map(l => renderLeadRow(l)).join('')}</tbody>
-      </table>
-    `;
+      <div>
+        <div class="section-title c-active">
+          Embudo activo
+          <span class="total-badge">${fmt(active.count)} leads · ${fmtMXN(active.value)}</span>
+        </div>
+        <table class="mini-table">
+          <thead><tr><th>Etapa</th><th class="num">Leads</th><th class="num">Valor</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function renderWon(won) {
+    if (!won.count) return '';
+    return `
+      <div>
+        <div class="section-title c-won">Ganados</div>
+        <div class="won-row">
+          <div class="big-value">${fmtMXN(won.value)}</div>
+          <div class="meta">${fmt(won.count)} lead${won.count !== 1 ? 's' : ''} cerrado${won.count !== 1 ? 's' : ''} exitosamente</div>
+        </div>
+      </div>`;
+  }
+
+  function renderLost(lost) {
+    if (!lost.count) return '';
+    const rows = lost.byReason.map(r => `<tr>
+      <td>${r.reason}</td>
+      <td class="num count-cell">${fmt(r.count)}</td>
+      <td class="num">${fmtMXN(r.value)}</td>
+    </tr>`).join('');
+
+    return `
+      <div>
+        <div class="section-title c-lost">
+          Perdidos
+          <span class="total-badge">${fmt(lost.count)} leads · ${fmtMXN(lost.value)}</span>
+        </div>
+        <table class="mini-table">
+          <thead><tr><th>Razón</th><th class="num">Leads</th><th class="num">Valor</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function renderServiceType(byServiceType) {
+    const relevant = byServiceType.filter(s => s.type !== 'Sin clasificar');
+    if (!relevant.length) return '';
+    const pills = relevant.map(s => `
+      <div class="service-pill">
+        <div class="pill-name">${s.type}</div>
+        <div class="pill-meta">${fmt(s.count)} leads · ${fmtMXN(s.value)}</div>
+      </div>`).join('');
+    return `
+      <div>
+        <div class="section-title c-service">Servicio de interés</div>
+        <div class="service-pills">${pills}</div>
+      </div>`;
   }
 
   function renderAdvisors(advisors) {
-    const grid = document.getElementById('advisor-grid');
-    grid.innerHTML = '';
+    const list = $('advisors-list');
+    list.innerHTML = '';
 
     if (!advisors.length) {
-      grid.innerHTML = '<div class="empty-msg">No se encontraron asesores con leads activos.</div>';
+      list.innerHTML = '<div style="color:var(--muted);padding:20px 0;">No se encontraron asesores.</div>';
       return;
     }
 
-    advisors.forEach((adv, i) => {
+    advisors.forEach(adv => {
       const el = document.createElement('div');
       el.className = 'advisor-card';
 
-      const pills = [
-        adv.sinSeguimiento.length ? `<span class="pill danger">⚠ ${adv.sinSeguimiento.length} sin seguimiento</span>` : '',
-        adv.sinTareas.length ? `<span class="pill warning">📋 ${adv.sinTareas.length} sin tarea</span>` : '',
-        adv.tareasVencidas.length ? `<span class="pill danger">🔴 ${adv.tareasVencidas.length} vencidas</span>` : '',
-        adv.tareasAlDia.length ? `<span class="pill success">✅ ${adv.tareasAlDia.length} al día</span>` : '',
+      const chips = [
+        adv.active.count ? `<span class="chip active">▶ ${fmt(adv.active.count)} activos</span>` : '',
+        adv.won.count    ? `<span class="chip won">✓ ${fmt(adv.won.count)} ganados</span>` : '',
+        adv.lost.count   ? `<span class="chip lost">✕ ${fmt(adv.lost.count)} perdidos</span>` : '',
       ].filter(Boolean).join('');
 
       const body = [
-        renderCategory('⚠ Sin seguimiento (+3 días)', adv.sinSeguimiento, 'var(--danger)'),
-        renderCategory('📋 Sin tareas', adv.sinTareas, 'var(--warning)'),
-        renderCategory('🔴 Tareas vencidas', adv.tareasVencidas, 'var(--danger)'),
-        renderCategory('✅ Tareas al día', adv.tareasAlDia, 'var(--success)'),
-      ].join('') || '<div class="empty-msg">Sin leads en ninguna categoría de alerta.</div>';
+        renderActiveStages(adv.active),
+        renderWon(adv.won),
+        renderLost(adv.lost),
+        renderServiceType(adv.byServiceType),
+      ].filter(Boolean).join('');
 
       el.innerHTML = `
-        <div class="advisor-header" onclick="toggleAdvisor(this)">
-          <div class="advisor-name">
-            <div class="advisor-avatar">${initials(adv.advisorName)}</div>
-            ${adv.advisorName}
+        <div class="advisor-header" onclick="toggle(this)">
+          <div class="advisor-left">
+            <div class="avatar">${initials(adv.advisorName)}</div>
+            <div>
+              <div class="advisor-name">${adv.advisorName}</div>
+              <div class="advisor-chips" style="margin-top:4px">${chips}</div>
+            </div>
           </div>
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div class="advisor-pills">${pills}</div>
-            <span class="chevron">▼</span>
-          </div>
+          <span class="chevron">▼</span>
         </div>
-        <div class="advisor-body">${body}</div>
-      `;
+        <div class="advisor-body">
+          <div class="sections">${body || '<p style="color:var(--muted);font-size:.85rem;padding:12px 0">Sin leads registrados.</p>'}</div>
+        </div>`;
 
-      grid.appendChild(el);
+      list.appendChild(el);
     });
   }
 
-  function toggleAdvisor(header) {
+  function toggle(header) {
     const body = header.nextElementSibling;
-    const chevron = header.querySelector('.chevron');
+    const ch   = header.querySelector('.chevron');
     body.classList.toggle('open');
-    chevron.classList.toggle('open');
+    ch.classList.toggle('open');
   }
 
   async function loadReport() {
     try {
-      const res = await fetch('/api/report');
+      const res  = await fetch('/api/report');
       const json = await res.json();
 
       if (json.isLoading) {
@@ -463,28 +446,26 @@
         loadingEl.style.display = 'none';
         errorEl.style.display = 'block';
         contentEl.style.display = 'none';
-        errorEl.textContent = '❌ Error: ' + json.error;
-        statusBadge.textContent = 'Error al cargar';
+        errorEl.textContent = '❌ ' + json.error;
+        statusBadge.textContent = 'Error';
         return;
       }
 
-      if (!json.data) {
-        setTimeout(loadReport, 2000);
-        return;
-      }
+      if (!json.data) { setTimeout(loadReport, 2000); return; }
 
       loadingEl.style.display = 'none';
-      errorEl.style.display = 'none';
+      errorEl.style.display   = 'none';
       contentEl.style.display = 'block';
 
-      const updatedAt = json.lastUpdated
-        ? new Date(json.lastUpdated).toLocaleString('es-MX')
+      statusBadge.textContent = json.lastUpdated
+        ? 'Actualizado: ' + new Date(json.lastUpdated).toLocaleString('es-MX')
         : '—';
-      statusBadge.textContent = `Actualizado: ${updatedAt}`;
 
-      renderSummary(json.data);
-      renderAdvisors(json.data.advisors);
-    } catch (e) {
+      const data = json.data;
+      data.totals.totalAdvisors = data.advisors.length;
+      renderSummary(data.totals);
+      renderAdvisors(data.advisors);
+    } catch {
       statusBadge.textContent = 'Error de conexión';
       btnRefresh.disabled = false;
       setTimeout(loadReport, 5000);
@@ -493,7 +474,7 @@
 
   btnRefresh.addEventListener('click', async () => {
     btnRefresh.disabled = true;
-    statusBadge.textContent = '⏳ Solicitando actualización...';
+    statusBadge.textContent = '⏳ Actualizando...';
     await fetch('/api/refresh', { method: 'POST' });
     setTimeout(loadReport, 1500);
   });

@@ -13,7 +13,7 @@ const api = axios.create({
 });
 
 // Rate limiter: máximo 6 req/s (margen seguro bajo el límite de 7 de Kommo)
-const MIN_INTERVAL_MS = Math.ceil(1000 / 6); // ~167ms entre solicitudes
+const MIN_INTERVAL_MS = Math.ceil(1000 / 6);
 let apiQueue = Promise.resolve();
 let lastRequestTime = 0;
 
@@ -30,7 +30,6 @@ function rateLimitedGet(endpoint, config) {
   return result;
 }
 
-// Paginación genérica
 async function fetchAll(endpoint, params = {}) {
   let page = 1;
   const results = [];
@@ -47,73 +46,62 @@ async function fetchAll(endpoint, params = {}) {
   return results;
 }
 
-// Obtener usuarios (asesores)
 async function fetchUsers() {
   const res = await rateLimitedGet('/users');
   const users = res.data?._embedded?.users || [];
   const map = {};
-  for (const u of users) {
-    map[u.id] = u.name || `Usuario ${u.id}`;
-  }
+  for (const u of users) map[u.id] = u.name || `Usuario ${u.id}`;
   return map;
 }
 
-// Obtener leads activos (no cerrados)
-async function fetchActiveLeads() {
-  // status_id 142 = ganado, 143 = perdido (estándares de Kommo)
-  // Traemos todos los leads activos con info de tareas
-  const leads = await fetchAll('/leads', {
-    with: 'loss_reason,contacts',
-    'filter[statuses][0][status_id]': null, // sin filtro de status = todos activos
+// Obtiene todos los pipelines y mapea statusId → { name, pipelineName, sort }
+async function fetchPipelines() {
+  const res = await rateLimitedGet('/leads/pipelines', { params: { limit: 250 } });
+  const pipelines = res.data?._embedded?.pipelines || [];
+  const stageMap = {};
+  for (const pipeline of pipelines) {
+    for (const status of (pipeline._embedded?.statuses || [])) {
+      stageMap[status.id] = {
+        name: status.name,
+        pipelineName: pipeline.name,
+        sort: status.sort ?? 999,
+        pipelineId: pipeline.id,
+      };
+    }
+  }
+  return stageMap;
+}
+
+function getLossReasonName(lead) {
+  const lr = lead._embedded?.loss_reason;
+  if (!lr) return 'Sin razón especificada';
+  if (Array.isArray(lr)) return lr[0]?.name || 'Sin razón especificada';
+  return lr.name || 'Sin razón especificada';
+}
+
+function getServiceType(lead) {
+  const fields = lead.custom_fields_values || [];
+  const field = fields.find(f => {
+    const name = (f.field_name || '').toLowerCase().replace(/\s+/g, '');
+    return name === 'serviciodeinterés' || name === 'serviciodeinteres' || name.includes('serviciodeinter');
   });
-
-  // Filtrar solo leads que NO están en estados cerrados (142 = Won, 143 = Lost)
-  return leads.filter(l => l.status_id !== 142 && l.status_id !== 143);
+  return field?.values?.[0]?.value || null;
 }
 
-// Obtener tareas pendientes de leads
-async function fetchTasks() {
-  return fetchAll('/tasks', { 'filter[is_completed]': 0, 'filter[entity_type]': 'leads' });
-}
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const now = () => Date.now();
-
-function daysSince(timestamp) {
-  if (!timestamp) return null;
-  return Math.floor((now() - timestamp * 1000) / DAY_MS);
-}
-
-function isOverdue(completeTill) {
-  if (!completeTill) return false;
-  return completeTill * 1000 < now();
-}
-
-// Función principal
 async function fetchReportData() {
   if (!ACCESS_TOKEN) {
     throw new Error('KOMMO_TOKEN no configurado. Por favor agrega tu token en las variables de entorno.');
   }
 
-  const [usersMap, activeLeads, tasks] = await Promise.all([
+  const [usersMap, allLeads, stageMap] = await Promise.all([
     fetchUsers(),
-    fetchActiveLeads(),
-    fetchTasks(),
+    fetchAll('/leads', { with: 'loss_reason' }),
+    fetchPipelines(),
   ]);
 
-  // Indexar tareas por lead_id
-  const tasksByLead = {};
-  for (const task of tasks) {
-    if (task.entity_type !== 'leads') continue;
-    const lid = task.entity_id;
-    if (!tasksByLead[lid]) tasksByLead[lid] = [];
-    tasksByLead[lid].push(task);
-  }
-
-  // Agrupar leads por asesor
   const byAdvisor = {};
 
-  for (const lead of activeLeads) {
+  for (const lead of allLeads) {
     const userId = lead.responsible_user_id;
     const advisorName = usersMap[userId] || `Asesor ${userId}`;
 
@@ -121,51 +109,79 @@ async function fetchReportData() {
       byAdvisor[userId] = {
         advisorId: userId,
         advisorName,
-        sinSeguimiento: [],   // > 3 días sin actualización
-        sinTareas: [],        // sin tareas pendientes
-        tareasVencidas: [],   // tiene tareas pero todas vencidas
-        tareasAlDia: [],      // tiene al menos una tarea futura
+        active: { count: 0, value: 0, byStage: {} },
+        won:    { count: 0, value: 0 },
+        lost:   { count: 0, value: 0, byReason: {} },
+        byServiceType: {},
       };
     }
 
-    const leadTasks = tasksByLead[lead.id] || [];
-    const daysSinceUpdate = daysSince(lead.updated_at);
-    const sinSeguimiento = daysSinceUpdate !== null && daysSinceUpdate > 3;
+    const adv = byAdvisor[userId];
+    const value = lead.price || 0;
+    const isWon  = lead.status_id === 142;
+    const isLost = lead.status_id === 143;
 
-    const hasTasks = leadTasks.length > 0;
-    const hasOverdue = hasTasks && leadTasks.every(t => isOverdue(t.complete_till));
-    const hasUpcoming = hasTasks && leadTasks.some(t => !isOverdue(t.complete_till));
+    // Tipo de servicio
+    const serviceType = getServiceType(lead) || 'Sin clasificar';
+    if (!adv.byServiceType[serviceType]) adv.byServiceType[serviceType] = { count: 0, value: 0 };
+    adv.byServiceType[serviceType].count++;
+    adv.byServiceType[serviceType].value += value;
 
-    const leadSummary = {
-      id: lead.id,
-      name: lead.name || `Lead #${lead.id}`,
-      price: lead.price || 0,
-      updatedAt: lead.updated_at,
-      daysSinceUpdate,
-      taskCount: leadTasks.length,
-      tasks: leadTasks.map(t => ({
-        id: t.id,
-        text: t.text,
-        completeTill: t.complete_till,
-        isOverdue: isOverdue(t.complete_till),
-      })),
-    };
-
-    const group = byAdvisor[userId];
-
-    if (sinSeguimiento) group.sinSeguimiento.push(leadSummary);
-    if (!hasTasks) group.sinTareas.push(leadSummary);
-    else if (hasOverdue) group.tareasVencidas.push(leadSummary);
-    if (hasUpcoming) group.tareasAlDia.push(leadSummary);
+    if (isWon) {
+      adv.won.count++;
+      adv.won.value += value;
+    } else if (isLost) {
+      adv.lost.count++;
+      adv.lost.value += value;
+      const reason = getLossReasonName(lead);
+      if (!adv.lost.byReason[reason]) adv.lost.byReason[reason] = { count: 0, value: 0 };
+      adv.lost.byReason[reason].count++;
+      adv.lost.byReason[reason].value += value;
+    } else {
+      adv.active.count++;
+      adv.active.value += value;
+      const stage = stageMap[lead.status_id];
+      const stageKey = lead.status_id;
+      if (!adv.active.byStage[stageKey]) {
+        adv.active.byStage[stageKey] = {
+          name: stage?.name || `Etapa ${stageKey}`,
+          count: 0,
+          value: 0,
+          sort: stage?.sort ?? 999,
+        };
+      }
+      adv.active.byStage[stageKey].count++;
+      adv.active.byStage[stageKey].value += value;
+    }
   }
 
+  const advisors = Object.values(byAdvisor).map(adv => ({
+    ...adv,
+    active: {
+      ...adv.active,
+      byStage: Object.values(adv.active.byStage).sort((a, b) => a.sort - b.sort),
+    },
+    lost: {
+      ...adv.lost,
+      byReason: Object.entries(adv.lost.byReason)
+        .map(([reason, data]) => ({ reason, ...data }))
+        .sort((a, b) => b.count - a.count),
+    },
+    byServiceType: Object.entries(adv.byServiceType)
+      .map(([type, data]) => ({ type, ...data }))
+      .sort((a, b) => b.count - a.count),
+  })).sort((a, b) => a.advisorName.localeCompare(b.advisorName));
+
   return {
-    advisors: Object.values(byAdvisor).sort((a, b) =>
-      a.advisorName.localeCompare(b.advisorName)
-    ),
+    advisors,
     totals: {
-      totalLeads: activeLeads.length,
-      totalAdvisors: Object.keys(byAdvisor).length,
+      totalLeads:      allLeads.length,
+      totalActive:     advisors.reduce((s, a) => s + a.active.count, 0),
+      totalWon:        advisors.reduce((s, a) => s + a.won.count, 0),
+      totalLost:       advisors.reduce((s, a) => s + a.lost.count, 0),
+      totalActiveValue: advisors.reduce((s, a) => s + a.active.value, 0),
+      totalWonValue:   advisors.reduce((s, a) => s + a.won.value, 0),
+      totalLostValue:  advisors.reduce((s, a) => s + a.lost.value, 0),
     },
   };
 }
