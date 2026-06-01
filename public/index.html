@@ -660,11 +660,29 @@
   const initials = name => name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
   function renderSummary(totals) {
+    const eficacia = totals.totalActive > 0
+      ? Math.round((1 - (totals.totalStagnant || 0) / totals.totalActive) * 100)
+      : null;
+    const eficaciaColor = eficacia === null ? 'var(--muted)'
+      : eficacia >= 80 ? 'var(--success)'
+      : eficacia >= 50 ? 'var(--warning)'
+      : 'var(--danger)';
+
     $('summary-strip').innerHTML = `
       <div class="stat-card c-accent">
         <div class="label">En pipeline</div>
         <div class="value">${fmt(totals.totalActive)}</div>
         <div class="sub">${fmtMXN(totals.totalActiveValue)}</div>
+      </div>
+      <div class="stat-card c-stagnant">
+        <div class="label">Estancados +72h</div>
+        <div class="value">${fmt(totals.totalStagnant || 0)}</div>
+        <div class="sub">leads sin movimiento</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Eficacia</div>
+        <div class="value" style="color:${eficaciaColor}">${eficacia !== null ? eficacia + '%' : '—'}</div>
+        <div class="sub">1 − (estancados / pipeline)</div>
       </div>
       <div class="stat-card c-success">
         <div class="label">Ganados</div>
@@ -676,14 +694,9 @@
         <div class="value">${fmt(totals.totalLost)}</div>
         <div class="sub">${fmtMXN(totals.totalLostValue)}</div>
       </div>
-      <div class="stat-card c-stagnant">
-        <div class="label">Estancados +72h</div>
-        <div class="value">${fmt(totals.totalStagnant || 0)}</div>
-        <div class="sub">leads sin movimiento</div>
-      </div>
-      <div class="stat-card c-danger">
-        <div class="label">Sin tarea</div>
-        <div class="value">${fmt(totals.tasksNoTask || 0)}</div>
+      <div class="stat-card c-success">
+        <div class="label">Tareas al día</div>
+        <div class="value">${fmt(totals.tasksUpToDate || 0)}</div>
         <div class="sub">leads activos</div>
       </div>
       <div class="stat-card c-warning">
@@ -691,9 +704,9 @@
         <div class="value">${fmt(totals.tasksOverdue || 0)}</div>
         <div class="sub">leads activos</div>
       </div>
-      <div class="stat-card c-success">
-        <div class="label">Tareas al día</div>
-        <div class="value">${fmt(totals.tasksUpToDate || 0)}</div>
+      <div class="stat-card c-danger">
+        <div class="label">Sin tarea</div>
+        <div class="value">${fmt(totals.tasksNoTask || 0)}</div>
         <div class="sub">leads activos</div>
       </div>
     `;
